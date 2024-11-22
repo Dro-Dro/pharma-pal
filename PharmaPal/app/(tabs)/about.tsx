@@ -19,12 +19,28 @@ export default function TabTwoScreen() {
       <Collapsible title="PDF Resources">
         <ThemedText>Access helpful pharmacy reference materials:</ThemedText>
         
-        <ExternalLink href="https://example.com/path-to-your-pdf.pdf">
-          <ThemedText type="link">Drug Dosage Guidelines</ThemedText>
+        <ExternalLink href="https://drive.google.com/file/d/1YZ2-5sXE43XuWxJkhusvCf1IImZO5zc7/view?usp=sharing">
+          <ThemedText type="link">PAAS Eye Drop Chart</ThemedText>
         </ExternalLink>
 
-        <ExternalLink href="https://example.com/another-pdf.pdf">
-          <ThemedText type="link">Medication Reference Chart</ThemedText>
+        <ExternalLink href="https://drive.google.com/file/d/1YZ2-5sXE43XuWxJkhusvCf1IImZO5zc7/view?usp=drive_link">
+          <ThemedText type="link">PAAS Topical Medication Chart</ThemedText>
+        </ExternalLink>
+
+        <ExternalLink href="https://drive.google.com/file/d/1MIUr_B0ZeYEuu-pV8_VvXV3QKSQY9-QQ/view?usp=drive_link">
+          <ThemedText type="link">PAAS Oral Inhaler Chart</ThemedText>
+        </ExternalLink>
+
+        <ExternalLink href="https://drive.google.com/file/d/1pJ3v5YwE3rJbKQPfOtIm3hm5X1oDYy9Z/view?usp=drive_link">
+          <ThemedText type="link">PAAS Nasal Inhaler Chart</ThemedText>
+        </ExternalLink>
+
+        <ExternalLink href="https://drive.google.com/file/d/1_yPLY9VasJmf2EGUUZt80rVkFBG7FvXF/view?usp=drive_link">
+          <ThemedText type="link">PAAS Diabetic Chart</ThemedText>
+        </ExternalLink>
+
+        <ExternalLink href="https://drive.google.com/file/d/1FjeayFv37AeRQlM613FgBF3ntVduDhhA/view?usp=drive_link">
+          <ThemedText type="link">PAAS Insulin Chart</ThemedText>
         </ExternalLink>
       </Collapsible>
       

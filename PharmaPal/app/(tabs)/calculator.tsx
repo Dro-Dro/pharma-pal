@@ -9,6 +9,8 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
+type TimeUnit = 'minute' | 'hour' | 'day' | 'week';
+
 export default function TabTwoScreen() {
   const [weightUnit, setWeightUnit] = useState('kg');
   const [quantity, setQuantity] = useState('');
@@ -16,16 +18,20 @@ export default function TabTwoScreen() {
   const [frequencyNumber, setFrequencyNumber] = useState('1');
   const [frequencyPattern, setFrequencyPattern] = useState('every');
   const [frequencyUnit, setFrequencyUnit] = useState('day');
-  const [outputUnit, setOutputUnit] = useState('day');
+  const [outputUnit, setOutputUnit] = useState<TimeUnit>('day');
   const [daySupply, setDaySupply] = useState('');
   const [calculationType, setCalculationType] = useState('daySupply');
   const [result, setResult] = useState('');
+  const [includeTitration, setIncludeTitration] = useState(false);
+  const [startingDose, setStartingDose] = useState('');
+  const [incrementAmount, setIncrementAmount] = useState('');
+  const [incrementFrequency, setIncrementFrequency] = useState('7');
 
-  const timeConversions = {
-    minute: 1/1440, // 1/24/60 days
-    hour: 1/24,     // 1/24 days
-    day: 1,         // 1 day
-    week: 7,        // 7 days
+  const timeConversions: Record<TimeUnit, number> = {
+    minute: 1/1440,
+    hour: 1/24,
+    day: 1,
+    week: 7,
   };
 
   const calculate = () => {
@@ -43,14 +49,32 @@ export default function TabTwoScreen() {
         return;
       }
 
-      const totalUnits = (quantityNum / packageSizeNum);
+      let totalUnits = (quantityNum / packageSizeNum);
       
-      const dailyRate = getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
-      
-      const daysResult = totalUnits * dailyRate;
-      
-      const convertedResult = daysResult / timeConversions[outputUnit];
-      setResult(`${convertedResult.toFixed(1)} ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
+      if (includeTitration) {
+        const startDose = parseFloat(startingDose);
+        const increment = parseFloat(incrementAmount);
+        const freqDays = parseFloat(incrementFrequency);
+        
+        if (isNaN(startDose) || isNaN(increment) || isNaN(freqDays)) {
+          setResult('Please enter valid titration values');
+          return;
+        }
+
+        const finalDose = quantityNum;
+        const steps = Math.ceil((finalDose - startDose) / increment);
+        const titrationDays = steps * freqDays;
+        
+        const regularDays = totalUnits * getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
+        const daysResult = regularDays + titrationDays;
+        const convertedResult = daysResult / timeConversions[outputUnit];
+        setResult(`${convertedResult.toFixed(1)} ${outputUnit}${convertedResult === 1 ? '' : 's'} (includes ${titrationDays} days of titration)`);
+      } else {
+        const dailyRate = getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
+        const daysResult = totalUnits * dailyRate;
+        const convertedResult = daysResult / timeConversions[outputUnit];
+        setResult(`${convertedResult.toFixed(1)} ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
+      }
 
     } else {
       const daysNum = parseFloat(daySupply);
@@ -179,6 +203,54 @@ export default function TabTwoScreen() {
                 />
                 <ThemedText style={styles.unitLabel}>units per package</ThemedText>
               </View>
+
+              <View style={styles.titrationToggle}>
+                <TouchableOpacity 
+                  style={[styles.toggleButton, includeTitration && styles.toggleButtonActive]}
+                  onPress={() => setIncludeTitration(!includeTitration)}>
+                  <ThemedText>Include Titration</ThemedText>
+                </TouchableOpacity>
+              </View>
+
+              {includeTitration && (
+                <View style={styles.titrationInputs}>
+                  <View style={styles.inputRow}>
+                    <TextInput
+                      style={[styles.input, styles.inputFlex]}
+                      value={startingDose}
+                      onChangeText={setStartingDose}
+                      keyboardType="numeric"
+                      placeholder="Starting dose"
+                      placeholderTextColor="#666"
+                    />
+                    <ThemedText style={styles.unitLabel}>units</ThemedText>
+                  </View>
+
+                  <View style={styles.inputRow}>
+                    <TextInput
+                      style={[styles.input, styles.inputFlex]}
+                      value={incrementAmount}
+                      onChangeText={setIncrementAmount}
+                      keyboardType="numeric"
+                      placeholder="Increase by"
+                      placeholderTextColor="#666"
+                    />
+                    <ThemedText style={styles.unitLabel}>units</ThemedText>
+                  </View>
+
+                  <View style={styles.inputRow}>
+                    <TextInput
+                      style={[styles.input, styles.inputFlex]}
+                      value={incrementFrequency}
+                      onChangeText={setIncrementFrequency}
+                      keyboardType="numeric"
+                      placeholder="Days between increases"
+                      placeholderTextColor="#666"
+                    />
+                    <ThemedText style={styles.unitLabel}>days</ThemedText>
+                  </View>
+                </View>
+              )}
             </>
           ) : (
             <View style={styles.inputRow}>
@@ -391,5 +463,16 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontStyle: 'italic',
     color: '#666',
-  }
+  },
+  titrationToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+    width: '100%',
+  },
+  titrationInputs: {
+    padding: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
 });

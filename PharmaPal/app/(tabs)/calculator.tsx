@@ -10,33 +10,99 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
 export default function TabTwoScreen() {
-  const [dosage, setDosage] = useState('');
-  const [weight, setWeight] = useState('');
-  const [dosageUnit, setDosageUnit] = useState('mg');
   const [weightUnit, setWeightUnit] = useState('kg');
-  const [dosageResult, setDosageResult] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [packageSize, setPackageSize] = useState('1');
+  const [frequencyNumber, setFrequencyNumber] = useState('1');
+  const [frequencyPattern, setFrequencyPattern] = useState('every');
+  const [frequencyUnit, setFrequencyUnit] = useState('day');
+  const [outputUnit, setOutputUnit] = useState('day');
+  const [daySupply, setDaySupply] = useState('');
+  const [calculationType, setCalculationType] = useState('daySupply');
+  const [result, setResult] = useState('');
 
-  const calculateDosage = () => {
-    const dosageNum = parseFloat(dosage);
-    const weightNum = parseFloat(weight);
+  const timeConversions = {
+    minute: 1/1440, // 1/24/60 days
+    hour: 1/24,     // 1/24 days
+    day: 1,         // 1 day
+    week: 7,        // 7 days
+  };
 
-    if (isNaN(dosageNum) || isNaN(weightNum)) {
-      setDosageResult('Please enter valid numbers');
-      return;
+  const calculate = () => {
+    const quantityNum = parseFloat(quantity);
+    const packageSizeNum = parseFloat(packageSize);
+    const frequencyNum = parseFloat(frequencyNumber);
+    
+    if (calculationType === 'daySupply') {
+      if (isNaN(quantityNum) || isNaN(packageSizeNum) || isNaN(frequencyNum)) {
+        setResult('Please enter valid numbers');
+        return;
+      }
+      if (quantityNum <= 0 || packageSizeNum <= 0 || frequencyNum <= 0) {
+        setResult('Values must be greater than 0');
+        return;
+      }
+
+      const totalUnits = (quantityNum / packageSizeNum);
+      
+      const dailyRate = getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
+      
+      const daysResult = totalUnits * dailyRate;
+      
+      const convertedResult = daysResult / timeConversions[outputUnit];
+      setResult(`${convertedResult.toFixed(1)} ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
+
+    } else {
+      const daysNum = parseFloat(daySupply);
+      
+      if (isNaN(daysNum)) {
+        setResult('Please enter valid numbers');
+        return;
+      }
+
+      const dailyRate = getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
+      const actualDays = daysNum * timeConversions[outputUnit];
+      const quantityNeeded = (actualDays / dailyRate) * packageSizeNum;
+      setResult(`${Math.ceil(quantityNeeded)} units needed`);
+    }
+  };
+
+  const getFrequencyPerDay = (freq: number, pattern: string, unit: string) => {
+    let baseRate = 1;
+    
+    switch(unit) {
+      case 'minute':
+        baseRate = 1 / (freq * timeConversions.minute);
+        break;
+      case 'hour':
+        baseRate = 1 / (freq * timeConversions.hour);
+        break;
+      case 'day':
+        baseRate = 1 / freq;
+        break;
+      case 'week':
+        baseRate = 1 / (freq * 7);
+        break;
     }
 
-    // Convert weight to kg if needed
-    const weightInKg = weightUnit === 'lbs' ? weightNum * 0.453592 : weightNum;
-
-    // Convert dosage to mg if needed
-    let dosageInMg = dosageNum;
-    switch (dosageUnit) {
-      case 'g': dosageInMg = dosageNum * 1000; break;
-      case 'mcg': dosageInMg = dosageNum / 1000; break;
+    if (pattern === 'everyOther') {
+      baseRate = baseRate / 2;
     }
 
-    const result = dosageInMg * weightInKg;
-    setDosageResult(`Total Dose: ${result.toFixed(2)} mg`);
+    return baseRate;
+  };
+
+  const formatFrequencyText = (freq: string, pattern: string, unit: string) => {
+    const freqNum = parseFloat(freq);
+    if (isNaN(freqNum)) return '';
+
+    const unitPlural = freqNum > 1 ? unit + 's' : unit;
+    
+    if (pattern === 'everyOther') {
+      return `Once every other ${unit}`;
+    } else {
+      return `Once every ${freqNum} ${unitPlural}`;
+    }
   };
 
   return (
@@ -67,51 +133,133 @@ export default function TabTwoScreen() {
       </ThemedView>
       
         <ThemedView style={styles.calculatorContainer}>
-          <ThemedText type="subtitle">Day Supply Calculator</ThemedText>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={[styles.input, styles.inputFlex]}
-              value={dosage}
-              onChangeText={setDosage}
-              keyboardType="numeric"
-              placeholder="Enter strength"
-              placeholderTextColor="#666"
-            />
-            <Picker
-              selectedValue={dosageUnit}
-              onValueChange={setDosageUnit}
-              style={styles.picker}>
-              <Picker.Item label="mg" value="mg" />
-              <Picker.Item label="g" value="g" />
-              <Picker.Item label="mcg" value="mcg" />
-            </Picker>
+          <ThemedText type="subtitle">Calculator</ThemedText>
+          
+          <View style={styles.toggleContainer}>
+            <TouchableOpacity 
+              style={[
+                styles.toggleButton, 
+                calculationType === 'daySupply' && styles.toggleButtonActive
+              ]}
+              onPress={() => setCalculationType('daySupply')}>
+              <ThemedText>Calculate Days</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.toggleButton, 
+                calculationType === 'quantity' && styles.toggleButtonActive
+              ]}
+              onPress={() => setCalculationType('quantity')}>
+              <ThemedText>Calculate Quantity</ThemedText>
+            </TouchableOpacity>
           </View>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={[styles.input, styles.inputFlex]}
-              value={weight}
-              onChangeText={setWeight}
-              keyboardType="numeric"
-              placeholder="Enter quantity"
-              placeholderTextColor="#666"
-            />
-            <Picker
-              selectedValue={weightUnit}
-              onValueChange={setWeightUnit}
-              style={styles.picker}>
-              <Picker.Item label="kg" value="kg" />
-              <Picker.Item label="lbs" value="lbs" />
-            </Picker>
+
+          {calculationType === 'daySupply' ? (
+            <>
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={[styles.input, styles.inputFlex]}
+                  value={quantity}
+                  onChangeText={setQuantity}
+                  keyboardType="numeric"
+                  placeholder="Enter quantity"
+                  placeholderTextColor="#666"
+                />
+                <ThemedText style={styles.unitLabel}>units</ThemedText>
+              </View>
+
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={[styles.input, styles.inputFlex]}
+                  value={packageSize}
+                  onChangeText={setPackageSize}
+                  keyboardType="numeric"
+                  placeholder="Package size"
+                  placeholderTextColor="#666"
+                />
+                <ThemedText style={styles.unitLabel}>units per package</ThemedText>
+              </View>
+            </>
+          ) : (
+            <View style={styles.inputRow}>
+              <TextInput
+                style={[styles.input, styles.inputFlex]}
+                value={daySupply}
+                onChangeText={setDaySupply}
+                keyboardType="numeric"
+                placeholder="Enter time"
+                placeholderTextColor="#666"
+              />
+              <Picker
+                selectedValue={outputUnit}
+                onValueChange={setOutputUnit}
+                style={styles.picker}>
+                <Picker.Item label="Minutes" value="minute" />
+                <Picker.Item label="Hours" value="hour" />
+                <Picker.Item label="Days" value="day" />
+                <Picker.Item label="Weeks" value="week" />
+              </Picker>
+            </View>
+          )}
+
+          <View style={styles.frequencyContainer}>
+            <View style={styles.inputRow}>
+              <Picker
+                selectedValue={frequencyPattern}
+                onValueChange={setFrequencyPattern}
+                style={styles.patternPicker}>
+                <Picker.Item label="Once every" value="every" />
+                <Picker.Item label="Once every other" value="everyOther" />
+              </Picker>
+              
+              <TextInput
+                style={[styles.input, styles.frequencyInput]}
+                value={frequencyNumber}
+                onChangeText={setFrequencyNumber}
+                keyboardType="numeric"
+                placeholder="1"
+                placeholderTextColor="#666"
+              />
+              
+              <Picker
+                selectedValue={frequencyUnit}
+                onValueChange={setFrequencyUnit}
+                style={styles.unitPicker}>
+                <Picker.Item label="minute(s)" value="minute" />
+                <Picker.Item label="hour(s)" value="hour" />
+                <Picker.Item label="day(s)" value="day" />
+                <Picker.Item label="week(s)" value="week" />
+              </Picker>
+            </View>
+
+            <ThemedText style={styles.frequencyDisplay}>
+              {formatFrequencyText(frequencyNumber, frequencyPattern, frequencyUnit)}
+            </ThemedText>
           </View>
+
+          {calculationType === 'daySupply' && (
+            <View style={styles.inputRow}>
+              <ThemedText>Show result in: </ThemedText>
+              <Picker
+                selectedValue={outputUnit}
+                onValueChange={setOutputUnit}
+                style={styles.picker}>
+                <Picker.Item label="Minutes" value="minute" />
+                <Picker.Item label="Hours" value="hour" />
+                <Picker.Item label="Days" value="day" />
+                <Picker.Item label="Weeks" value="week" />
+              </Picker>
+            </View>
+          )}
+
           <TouchableOpacity 
             style={styles.button}
-            onPress={calculateDosage}>
-            <ThemedText>Calculate Dosage</ThemedText>
+            onPress={calculate}>
+            <ThemedText>Calculate</ThemedText>
           </TouchableOpacity>
-          <ThemedText style={styles.result}>{dosageResult}</ThemedText>
+          <ThemedText style={styles.result}>{result}</ThemedText>
           <ThemedText style={styles.info}>
-            This calculator helps determine day supply based on user input.
-            Always verify calculations and consult official guidelines.
+            Day Supply Calculation: (Quantity ÷ Package Size) × Frequency
           </ThemedText>
         </ThemedView>
     </ParallaxScrollView>
@@ -199,5 +347,49 @@ const styles = StyleSheet.create({
   titleHeader: {
     marginBottom: 20,
     fontWeight: 'bold'
+  },
+  unitLabel: {
+    marginLeft: 10,
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+    width: '100%',
+  },
+  toggleButton: {
+    padding: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    width: '45%',
+    alignItems: 'center',
+  },
+  toggleButtonActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  frequencyContainer: {
+    width: '100%',
+    marginBottom: 15,
+  },
+  frequencyInput: {
+    width: 50,
+    textAlign: 'center',
+    marginHorizontal: 5,
+  },
+  patternPicker: {
+    flex: 1.2,
+    minWidth: 130,
+  },
+  unitPicker: {
+    flex: 1,
+    minWidth: 100,
+  },
+  frequencyDisplay: {
+    textAlign: 'center',
+    marginTop: 5,
+    fontStyle: 'italic',
+    color: '#666',
   }
 });

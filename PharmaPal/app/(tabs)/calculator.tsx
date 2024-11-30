@@ -85,8 +85,7 @@ export default function TabTwoScreen() {
 
     if (calculationType === 'daySupply') {
       // Validate inputs
-      if (isNaN(adjustedQuantity) || isNaN(packageSizeNum) || isNaN(frequencyNum) || 
-          (weightUnit === 'Eye Drops' && isNaN(dropsPerMlNum))) {
+      if (isNaN(adjustedQuantity) || isNaN(packageSizeNum) || isNaN(frequencyNum)) {
         setResult('Please enter valid numbers');
         return;
       }
@@ -97,7 +96,7 @@ export default function TabTwoScreen() {
           return 0.5;
         }
         if (frequencyUnit === 'hour') {
-          return 24 / frequencyNum;
+          return 24 / frequencyNum;  // For every 8 hours, this will be 24/8 = 3 doses per day
         }
         if (frequencyUnit === 'day') {
           return frequencyNum;
@@ -109,10 +108,46 @@ export default function TabTwoScreen() {
       })();
 
       let resultValue: number;
-      if (weightUnit === 'Eye Drops') {
+      if (includeTitration && maxDose) {
+        const maxDoseNum = parseFloat(maxDose);
+        let remainingQuantity = adjustedQuantity;
+        let totalDays = 0;
+        let currentDose = parseFloat(titrationStages[0].startDose);
+
+        while (remainingQuantity > 0 && currentDose <= maxDoseNum) {
+          // Calculate how many days we can cover at current dose
+          const daysAtCurrentDose = Math.min(
+            remainingQuantity / currentDose,  // Days possible with remaining quantity
+            parseFloat(titrationStages[0].frequency)  // Days until next increase
+          );
+
+          totalDays += daysAtCurrentDose;
+          remainingQuantity -= (daysAtCurrentDose * currentDose);
+          currentDose = Math.min(currentDose + parseFloat(titrationStages[0].increment), maxDoseNum);
+
+          // If we've reached max dose, calculate remaining days at max dose
+          if (currentDose >= maxDoseNum && remainingQuantity > 0) {
+            totalDays += remainingQuantity / maxDoseNum;
+            break;
+          }
+        }
+
+        resultValue = totalDays;
+      } else if (weightUnit === 'Eye Drops') {
         const totalDrops = adjustedQuantity * dropsPerMlNum;
         resultValue = totalDrops / dosesPerDay;
+      } else if (concentrationEnabled && 
+                 concentrationValue1 && concentrationValue2 && 
+                 dosagePerUnit) {
+        // Convert everything to a common unit (ml)
+        const concentrationRatio = parseFloat(concentrationValue1) / parseFloat(concentrationValue2);  // mg/ml
+        const dosageNeeded = parseFloat(dosagePerUnit);  // mg per dose
+        const mlPerDose = (dosageNeeded / concentrationRatio);  // ml needed per dose
+        
+        // Calculate days supply based on total volume and daily usage
+        resultValue = adjustedQuantity / (mlPerDose * dosesPerDay);
       } else {
+        // Regular calculation
         const dailyUsage = dosesPerDay * packageSizeNum;
         resultValue = adjustedQuantity / dailyUsage;
       }

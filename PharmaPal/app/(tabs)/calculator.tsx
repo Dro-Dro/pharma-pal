@@ -359,9 +359,7 @@ export default function TabTwoScreen() {
                   placeholder="Uses per frequency"
                   placeholderTextColor="#666"
                 />
-                <ThemedText style={styles.unitLabel}>
-                  {weightUnit === 'Eye Drops' ? 'ml per package' : 'uses per frequency'}
-                </ThemedText>
+                <ThemedText style={styles.unitLabel}>uses per frequency</ThemedText>
               </View>
 
               {weightUnit === 'Eye Drops' && (

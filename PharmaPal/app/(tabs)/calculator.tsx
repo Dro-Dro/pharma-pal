@@ -19,6 +19,28 @@ type TitrationStage = {
 
 type MeasurementUnit = 'mg' | 'ml' | 'g' | 'gm' | 'mcg' | 'units';
 
+type TopicalArea = {
+  name: string;
+  grams: number;
+};
+
+const TOPICAL_AREAS: TopicalArea[] = [
+  { name: "scalp", grams: 1.5 },
+  { name: "face & neck", grams: 1.25 },
+  { name: "1 hand - front/back/fingers", grams: 0.5 },
+  { name: "1 entire arm & hand", grams: 2 },
+  { name: "elbows", grams: 0.5 },
+  { name: "1 foot - top/sole/toes", grams: 0.75 },
+  { name: "1 entire leg + foot", grams: 4 },
+  { name: "buttocks", grams: 2 },
+  { name: "knees", grams: 0.5 },
+  { name: "trunk front", grams: 4 },
+  { name: "trunk back", grams: 4 },
+  { name: "genitalia", grams: 0.5 },
+  { name: "back and buttocks", grams: 3.5 },
+  { name: "front of chest + abdomen", grams: 3.5 }
+];
+
 export default function TabTwoScreen() {
   const [weightUnit, setWeightUnit] = useState('kg');
   const [quantity, setQuantity] = useState('');
@@ -51,6 +73,7 @@ export default function TabTwoScreen() {
   const [useBeyondUseDate, setUseBeyondUseDate] = useState(false);
   const [packageSizeValue, setPackageSizeValue] = useState('');
   const [beyondUseDateValue, setBeyondUseDateValue] = useState('');
+  const [selectedAreas, setSelectedAreas] = useState<Set<string>>(new Set());
 
   const timeConversions: Record<TimeUnit, number> = {
     minute: 1/1440,
@@ -85,7 +108,8 @@ export default function TabTwoScreen() {
 
     if (calculationType === 'daySupply') {
       // Validate inputs
-      if (isNaN(adjustedQuantity) || isNaN(packageSizeNum) || isNaN(frequencyNum)) {
+      if (isNaN(adjustedQuantity) || isNaN(packageSizeNum) || isNaN(frequencyNum) || 
+          (weightUnit === 'Eye Drops' && isNaN(dropsPerMlNum))) {
         setResult('Please enter valid numbers');
         return;
       }
@@ -96,7 +120,7 @@ export default function TabTwoScreen() {
           return 0.5;
         }
         if (frequencyUnit === 'hour') {
-          return 24 / frequencyNum;  // For every 8 hours, this will be 24/8 = 3 doses per day
+          return 24 / frequencyNum;
         }
         if (frequencyUnit === 'day') {
           return frequencyNum;
@@ -136,18 +160,7 @@ export default function TabTwoScreen() {
       } else if (weightUnit === 'Eye Drops') {
         const totalDrops = adjustedQuantity * dropsPerMlNum;
         resultValue = totalDrops / dosesPerDay;
-      } else if (concentrationEnabled && 
-                 concentrationValue1 && concentrationValue2 && 
-                 dosagePerUnit) {
-        // Convert everything to a common unit (ml)
-        const concentrationRatio = parseFloat(concentrationValue1) / parseFloat(concentrationValue2);  // mg/ml
-        const dosageNeeded = parseFloat(dosagePerUnit);  // mg per dose
-        const mlPerDose = (dosageNeeded / concentrationRatio);  // ml needed per dose
-        
-        // Calculate days supply based on total volume and daily usage
-        resultValue = adjustedQuantity / (mlPerDose * dosesPerDay);
       } else {
-        // Regular calculation
         const dailyUsage = dosesPerDay * packageSizeNum;
         resultValue = adjustedQuantity / dailyUsage;
       }
@@ -274,6 +287,23 @@ export default function TabTwoScreen() {
     } else {
       return `Once every ${freqNum} ${unitPlural}`;
     }
+  };
+
+  const calculateTotalGrams = () => {
+    return TOPICAL_AREAS
+      .filter(area => selectedAreas.has(area.name))
+      .reduce((sum, area) => sum + area.grams, 0);
+  };
+
+  const toggleArea = (areaName: string) => {
+    const newSelected = new Set(selectedAreas);
+    if (newSelected.has(areaName)) {
+      newSelected.delete(areaName);
+    } else {
+      newSelected.add(areaName);
+    }
+    setSelectedAreas(newSelected);
+    setDosagePerUnit(calculateTotalGrams().toString());
   };
 
   return (
@@ -420,77 +450,103 @@ export default function TabTwoScreen() {
                 </View>
               )}
 
-              {measurementUnit !== 'units' && weightUnit !== 'Eye Drops' && (
-                <>
-                  <View style={styles.inputRow}>
-                    <TextInput
-                      style={[styles.input, styles.inputFlex]}
-                      value={dosagePerUnit}
-                      onChangeText={setDosagePerUnit}
-                      keyboardType="numeric"
-                      placeholder="Dosage"
-                      placeholderTextColor="#666"
-                    />
-                    <Picker
-                      selectedValue={dosageUnit}
-                      onValueChange={setDosageUnit}
-                      style={styles.unitPicker}>
-                      <Picker.Item label="mg" value="mg" />
-                      <Picker.Item label="ml" value="ml" />
-                      <Picker.Item label="g" value="g" />
-                      <Picker.Item label="gm" value="gm" />
-                      <Picker.Item label="mcg" value="mcg" />
-                    </Picker>
+              {weightUnit === 'Topical' ? (
+                <View style={styles.topicalContainer}>
+                  <ThemedText style={styles.topicalTitle}>Select affected areas:</ThemedText>
+                  <View style={styles.topicalButtonsGrid}>
+                    {TOPICAL_AREAS.map((area) => (
+                      <TouchableOpacity
+                        key={area.name}
+                        style={[
+                          styles.topicalButton,
+                          selectedAreas.has(area.name) && styles.topicalButtonSelected
+                        ]}
+                        onPress={() => toggleArea(area.name)}
+                      >
+                        <ThemedText style={[
+                          styles.topicalButtonText,
+                          selectedAreas.has(area.name) && styles.topicalButtonTextSelected
+                        ]}>
+                          {area.name}
+                          {'\n'}
+                          ({area.grams}g)
+                        </ThemedText>
+                      </TouchableOpacity>
+                    ))}
                   </View>
+                  <ThemedText style={styles.topicalTotal}>
+                    Total: {calculateTotalGrams()}g per application
+                  </ThemedText>
+                </View>
+              ) : (
+                <View style={styles.inputRow}>
+                  <TextInput
+                    style={[styles.input, styles.inputFlex]}
+                    value={dosagePerUnit}
+                    onChangeText={setDosagePerUnit}
+                    keyboardType="numeric"
+                    placeholder="Dosage"
+                    placeholderTextColor="#666"
+                  />
+                  <Picker
+                    selectedValue={dosageUnit}
+                    onValueChange={setDosageUnit}
+                    style={styles.unitPicker}>
+                    <Picker.Item label="mg" value="mg" />
+                    <Picker.Item label="ml" value="ml" />
+                    <Picker.Item label="g" value="g" />
+                    <Picker.Item label="gm" value="gm" />
+                    <Picker.Item label="mcg" value="mcg" />
+                  </Picker>
+                </View>
+              )}
 
-                  <View style={styles.titrationToggle}>
-                    <TouchableOpacity 
-                      style={[styles.toggleButton, concentrationEnabled && styles.toggleButtonActive]}
-                      onPress={() => setConcentrationEnabled(!concentrationEnabled)}>
-                      <ThemedText>Include Concentration</ThemedText>
-                    </TouchableOpacity>
-                  </View>
+              <View style={styles.titrationToggle}>
+                <TouchableOpacity 
+                  style={[styles.toggleButton, concentrationEnabled && styles.toggleButtonActive]}
+                  onPress={() => setConcentrationEnabled(!concentrationEnabled)}>
+                  <ThemedText>Include Concentration</ThemedText>
+                </TouchableOpacity>
+              </View>
 
-                  {concentrationEnabled && (
-                    <View style={styles.inputRow}>
-                      <TextInput
-                        style={[styles.input, styles.inputFlex]}
-                        value={concentrationValue1}
-                        onChangeText={setConcentrationValue1}
-                        keyboardType="numeric"
-                        placeholder="Concentration"
-                        placeholderTextColor="#666"
-                      />
-                      <Picker
-                        selectedValue={concentrationUnit1}
-                        onValueChange={setConcentrationUnit1}
-                        style={styles.unitPicker}>
-                        <Picker.Item label="mg" value="mg" />
-                        <Picker.Item label="ml" value="ml" />
-                        <Picker.Item label="g" value="g" />
-                        <Picker.Item label="mcg" value="mcg" />
-                      </Picker>
-                      <ThemedText>per</ThemedText>
-                      <TextInput
-                        style={[styles.input, styles.inputFlex]}
-                        value={concentrationValue2}
-                        onChangeText={setConcentrationValue2}
-                        keyboardType="numeric"
-                        placeholder="Volume"
-                        placeholderTextColor="#666"
-                      />
-                      <Picker
-                        selectedValue={concentrationUnit2}
-                        onValueChange={setConcentrationUnit2}
-                        style={styles.unitPicker}>
-                        <Picker.Item label="ml" value="ml" />
-                        <Picker.Item label="mg" value="mg" />
-                        <Picker.Item label="g" value="g" />
-                        <Picker.Item label="mcg" value="mcg" />
-                      </Picker>
-                    </View>
-                  )}
-                </>
+              {concentrationEnabled && (
+                <View style={styles.inputRow}>
+                  <TextInput
+                    style={[styles.input, styles.inputFlex]}
+                    value={concentrationValue1}
+                    onChangeText={setConcentrationValue1}
+                    keyboardType="numeric"
+                    placeholder="Concentration"
+                    placeholderTextColor="#666"
+                  />
+                  <Picker
+                    selectedValue={concentrationUnit1}
+                    onValueChange={setConcentrationUnit1}
+                    style={styles.unitPicker}>
+                    <Picker.Item label="mg" value="mg" />
+                    <Picker.Item label="ml" value="ml" />
+                    <Picker.Item label="g" value="g" />
+                    <Picker.Item label="mcg" value="mcg" />
+                  </Picker>
+                  <ThemedText>per</ThemedText>
+                  <TextInput
+                    style={[styles.input, styles.inputFlex]}
+                    value={concentrationValue2}
+                    onChangeText={setConcentrationValue2}
+                    keyboardType="numeric"
+                    placeholder="Volume"
+                    placeholderTextColor="#666"
+                  />
+                  <Picker
+                    selectedValue={concentrationUnit2}
+                    onValueChange={setConcentrationUnit2}
+                    style={styles.unitPicker}>
+                    <Picker.Item label="ml" value="ml" />
+                    <Picker.Item label="mg" value="mg" />
+                    <Picker.Item label="g" value="g" />
+                    <Picker.Item label="mcg" value="mcg" />
+                  </Picker>
+                </View>
               )}
 
               <View style={styles.titrationToggle}>
@@ -880,5 +936,54 @@ const styles = StyleSheet.create({
   resultContainer: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  topicalContainer: {
+    width: '100%',
+    padding: 10,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    marginVertical: 10,
+  },
+  topicalTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  topicalButtonsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'space-between',
+    padding: 5,
+  },
+  topicalButton: {
+    width: '48%',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    marginBottom: 8,
+    backgroundColor: '#ffffff',
+  },
+  topicalButtonSelected: {
+    backgroundColor: '#91e655',
+    borderColor: '#91e655',
+  },
+  topicalButtonText: {
+    textAlign: 'center',
+    fontSize: 12,
+  },
+  topicalButtonTextSelected: {
+    color: '#000000',
+  },
+  topicalTotal: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    padding: 10,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
   },
 });

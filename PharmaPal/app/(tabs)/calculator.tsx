@@ -41,6 +41,11 @@ export default function TabTwoScreen() {
   const [previousUnit, setPreviousUnit] = useState<MeasurementUnit>('units');
   const [dosagePerUnit, setDosagePerUnit] = useState('1');
   const [dosageUnit, setDosageUnit] = useState<MeasurementUnit>('units');
+  const [concentrationEnabled, setConcentrationEnabled] = useState(false);
+  const [concentrationValue1, setConcentrationValue1] = useState('');
+  const [concentrationValue2, setConcentrationValue2] = useState('');
+  const [concentrationUnit1, setConcentrationUnit1] = useState<MeasurementUnit>('mg');
+  const [concentrationUnit2, setConcentrationUnit2] = useState<MeasurementUnit>('ml');
 
   const timeConversions: Record<TimeUnit, number> = {
     minute: 1/1440,
@@ -89,6 +94,21 @@ export default function TabTwoScreen() {
         return getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
       })();
 
+      let adjustedDosagePerUnit = parseFloat(dosagePerUnit);
+
+      if (concentrationEnabled) {
+        const conc1 = parseFloat(concentrationValue1);
+        const conc2 = parseFloat(concentrationValue2);
+        
+        if (isNaN(conc1) || isNaN(conc2) || conc2 === 0) {
+          setResult('Please enter valid concentration values');
+          return;
+        }
+
+        // Adjust dosage based on concentration ratio
+        adjustedDosagePerUnit = adjustedDosagePerUnit * (conc2 / conc1);
+      }
+
       if (includeTitration) {
         const maxDoseNum = parseFloat(maxDose);
         let currentDose = parseFloat(titrationStages[0].startDose);
@@ -135,7 +155,7 @@ export default function TabTwoScreen() {
         setResult(`${roundedResult} (${convertedResult.toFixed(1)}) ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
       } else {
         // Regular calculation
-        const dailyUsage = dosesPerDay * dosagePerUnitNum;
+        const dailyUsage = dosesPerDay * adjustedDosagePerUnit;
         const daysResult = quantityNum / dailyUsage;
         const convertedResult = daysResult * timeConversions[outputUnit];
         const roundedResult = Math.floor(convertedResult);
@@ -331,27 +351,76 @@ export default function TabTwoScreen() {
               </View>
 
               {measurementUnit !== 'units' && (
-                <View style={styles.inputRow}>
-                  <TextInput
-                    style={[styles.input, styles.inputFlex]}
-                    value={dosagePerUnit}
-                    onChangeText={setDosagePerUnit}
-                    keyboardType="numeric"
-                    placeholder="Dosage per unit"
-                    placeholderTextColor="#666"
-                  />
-                  <Picker
-                    selectedValue={dosageUnit}
-                    onValueChange={setDosageUnit}
-                    style={styles.unitPicker}>
-                    <Picker.Item label="units" value="units" />
-                    <Picker.Item label="mg" value="mg" />
-                    <Picker.Item label="ml" value="ml" />
-                    <Picker.Item label="g" value="g" />
-                    <Picker.Item label="gm" value="gm" />
-                    <Picker.Item label="mcg" value="mcg" />
-                  </Picker>
-                </View>
+                <>
+                  <View style={styles.inputRow}>
+                    <TextInput
+                      style={[styles.input, styles.inputFlex]}
+                      value={dosagePerUnit}
+                      onChangeText={setDosagePerUnit}
+                      keyboardType="numeric"
+                      placeholder="Dosage"
+                      placeholderTextColor="#666"
+                    />
+                    <Picker
+                      selectedValue={dosageUnit}
+                      onValueChange={setDosageUnit}
+                      style={styles.unitPicker}>
+                      <Picker.Item label="mg" value="mg" />
+                      <Picker.Item label="ml" value="ml" />
+                      <Picker.Item label="g" value="g" />
+                      <Picker.Item label="gm" value="gm" />
+                      <Picker.Item label="mcg" value="mcg" />
+                    </Picker>
+                  </View>
+
+                  <View style={styles.titrationToggle}>
+                    <TouchableOpacity 
+                      style={[styles.toggleButton, concentrationEnabled && styles.toggleButtonActive]}
+                      onPress={() => setConcentrationEnabled(!concentrationEnabled)}>
+                      <ThemedText>Include Concentration</ThemedText>
+                    </TouchableOpacity>
+                  </View>
+
+                  {concentrationEnabled && (
+                    <View style={styles.inputRow}>
+                      <TextInput
+                        style={[styles.input, styles.inputFlex]}
+                        value={concentrationValue1}
+                        onChangeText={setConcentrationValue1}
+                        keyboardType="numeric"
+                        placeholder="Concentration"
+                        placeholderTextColor="#666"
+                      />
+                      <Picker
+                        selectedValue={concentrationUnit1}
+                        onValueChange={setConcentrationUnit1}
+                        style={styles.unitPicker}>
+                        <Picker.Item label="mg" value="mg" />
+                        <Picker.Item label="ml" value="ml" />
+                        <Picker.Item label="g" value="g" />
+                        <Picker.Item label="mcg" value="mcg" />
+                      </Picker>
+                      <ThemedText>per</ThemedText>
+                      <TextInput
+                        style={[styles.input, styles.inputFlex]}
+                        value={concentrationValue2}
+                        onChangeText={setConcentrationValue2}
+                        keyboardType="numeric"
+                        placeholder="Volume"
+                        placeholderTextColor="#666"
+                      />
+                      <Picker
+                        selectedValue={concentrationUnit2}
+                        onValueChange={setConcentrationUnit2}
+                        style={styles.unitPicker}>
+                        <Picker.Item label="ml" value="ml" />
+                        <Picker.Item label="mg" value="mg" />
+                        <Picker.Item label="g" value="g" />
+                        <Picker.Item label="mcg" value="mcg" />
+                      </Picker>
+                    </View>
+                  )}
+                </>
               )}
 
               <View style={styles.titrationToggle}>
@@ -626,11 +695,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
-    marginTop: 10,
     gap: 10,
   },
   inputFlex: {
-    flex: 2,
+    flex: 1,
   },
   picker: {
     flex: 1,

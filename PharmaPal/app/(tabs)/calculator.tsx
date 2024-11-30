@@ -565,9 +565,8 @@ export default function TabTwoScreen() {
             )}
           </View>
           <ThemedText style={styles.info}>
-            {measurementUnit === 'units' 
-              ? 'Day Supply Calculation: (Quantity ÷ Package Size) ÷ Frequency'
-              : 'Day Supply Calculation: (Quantity ÷ (Dosage per unit × Units per package)) ÷ Frequency'}
+            Please reload the page when altering fields to find a different Day Supply.
+            Don't reload the page once Day Supply has been calculated and you're trying to find a Quantity with a given Day Supply.
           </ThemedText>
         </ThemedView>
     </ParallaxScrollView>

@@ -46,6 +46,7 @@ export default function TabTwoScreen() {
   const [concentrationValue2, setConcentrationValue2] = useState('');
   const [concentrationUnit1, setConcentrationUnit1] = useState<MeasurementUnit>('mg');
   const [concentrationUnit2, setConcentrationUnit2] = useState<MeasurementUnit>('ml');
+  const [dropsPerMl, setDropsPerMl] = useState('20');
 
   const timeConversions: Record<TimeUnit, number> = {
     minute: 1/1440,
@@ -68,11 +69,12 @@ export default function TabTwoScreen() {
     const packageSizeNum = parseFloat(packageSize);
     const frequencyNum = parseFloat(frequencyNumber);
     const dosagePerUnitNum = parseFloat(dosagePerUnit);
+    const dropsPerMlNum = parseFloat(dropsPerMl);
     
     if (calculationType === 'daySupply') {
       // Validate inputs
       if (isNaN(quantityNum) || isNaN(packageSizeNum) || isNaN(frequencyNum) || 
-          (measurementUnit !== 'units' && isNaN(dosagePerUnitNum))) {
+          (weightUnit === 'Eye Drops' && isNaN(dropsPerMlNum))) {
         setResult('Please enter valid numbers');
         return;
       }
@@ -80,86 +82,96 @@ export default function TabTwoScreen() {
       // Calculate doses per day based on frequency
       const dosesPerDay = (() => {
         if (frequencyPattern === 'everyOther') {
-          return 0.5;  // once every other day
+          return 0.5;
         }
         if (frequencyUnit === 'hour') {
-          return 24 / frequencyNum;  // e.g., every 8 hours = 3 times per day
+          return 24 / frequencyNum;
         }
         if (frequencyUnit === 'day') {
-          return frequencyNum;  // e.g., 1 time per day = 1
+          return frequencyNum;
         }
         if (frequencyUnit === 'week') {
-          return frequencyNum / 7;  // convert weekly to daily
+          return frequencyNum / 7;
         }
         return getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
       })();
 
-      let adjustedDosagePerUnit = parseFloat(dosagePerUnit);
-
-      if (concentrationEnabled) {
-        const conc1 = parseFloat(concentrationValue1);
-        const conc2 = parseFloat(concentrationValue2);
-        
-        if (isNaN(conc1) || isNaN(conc2) || conc2 === 0) {
-          setResult('Please enter valid concentration values');
-          return;
-        }
-
-        // Adjust dosage based on concentration ratio
-        adjustedDosagePerUnit = adjustedDosagePerUnit * (conc2 / conc1);
-      }
-
-      if (includeTitration) {
-        const maxDoseNum = parseFloat(maxDose);
-        let currentDose = parseFloat(titrationStages[0].startDose);
-        let totalUnitsNeeded = 0;
-        let remainingQuantity = quantityNum;
-        let daysCount = 0;
-
-        if (isNaN(maxDoseNum)) {
-          setResult('Please enter a valid maximum dose');
-          return;
-        }
-
-        // Calculate through each titration stage
-        for (const stage of titrationStages) {
-          const startDose = parseFloat(stage.startDose);
-          const increment = parseFloat(stage.increment);
-          const freqDays = parseFloat(stage.frequency);
-          
-          if (isNaN(startDose) || isNaN(increment) || isNaN(freqDays)) {
-            setResult('Please enter valid titration values');
-            return;
-          }
-
-          let daysInThisStage = 0;
-          let currentStepDose = startDose;
-
-          while (remainingQuantity > 0 && currentStepDose <= maxDoseNum) {
-            if (remainingQuantity < currentStepDose) break;
-            
-            remainingQuantity -= currentStepDose;
-            daysInThisStage++;
-            daysCount++;
-
-            if (daysInThisStage % freqDays === 0) {
-              currentStepDose = Math.min(currentStepDose + increment, maxDoseNum);
-            }
-          }
-
-          if (remainingQuantity <= 0) break;
-        }
-
-        const convertedResult = daysCount * timeConversions[outputUnit];
-        const roundedResult = Math.floor(convertedResult);
-        setResult(`${roundedResult} (${convertedResult.toFixed(1)}) ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
-      } else {
-        // Regular calculation
-        const dailyUsage = dosesPerDay * adjustedDosagePerUnit;
-        const daysResult = quantityNum / dailyUsage;
+      if (weightUnit === 'Eye Drops') {
+        // Calculate total drops available
+        const totalDrops = quantityNum * dropsPerMlNum;
+        // Calculate days supply based on drops per day
+        const daysResult = totalDrops / dosesPerDay;
         const convertedResult = daysResult * timeConversions[outputUnit];
         const roundedResult = Math.floor(convertedResult);
         setResult(`${roundedResult} (${convertedResult.toFixed(1)}) ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
+      } else {
+        let adjustedDosagePerUnit = parseFloat(dosagePerUnit);
+
+        if (concentrationEnabled) {
+          const conc1 = parseFloat(concentrationValue1);
+          const conc2 = parseFloat(concentrationValue2);
+          
+          if (isNaN(conc1) || isNaN(conc2) || conc2 === 0) {
+            setResult('Please enter valid concentration values');
+            return;
+          }
+
+          // Adjust dosage based on concentration ratio
+          adjustedDosagePerUnit = adjustedDosagePerUnit * (conc2 / conc1);
+        }
+
+        if (includeTitration) {
+          const maxDoseNum = parseFloat(maxDose);
+          let currentDose = parseFloat(titrationStages[0].startDose);
+          let totalUnitsNeeded = 0;
+          let remainingQuantity = quantityNum;
+          let daysCount = 0;
+
+          if (isNaN(maxDoseNum)) {
+            setResult('Please enter a valid maximum dose');
+            return;
+          }
+
+          // Calculate through each titration stage
+          for (const stage of titrationStages) {
+            const startDose = parseFloat(stage.startDose);
+            const increment = parseFloat(stage.increment);
+            const freqDays = parseFloat(stage.frequency);
+            
+            if (isNaN(startDose) || isNaN(increment) || isNaN(freqDays)) {
+              setResult('Please enter valid titration values');
+              return;
+            }
+
+            let daysInThisStage = 0;
+            let currentStepDose = startDose;
+
+            while (remainingQuantity > 0 && currentStepDose <= maxDoseNum) {
+              if (remainingQuantity < currentStepDose) break;
+              
+              remainingQuantity -= currentStepDose;
+              daysInThisStage++;
+              daysCount++;
+
+              if (daysInThisStage % freqDays === 0) {
+                currentStepDose = Math.min(currentStepDose + increment, maxDoseNum);
+              }
+            }
+
+            if (remainingQuantity <= 0) break;
+          }
+
+          const convertedResult = daysCount * timeConversions[outputUnit];
+          const roundedResult = Math.floor(convertedResult);
+          setResult(`${roundedResult} (${convertedResult.toFixed(1)}) ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
+        } else {
+          // Regular calculation
+          const dailyUsage = dosesPerDay * adjustedDosagePerUnit;
+          const daysResult = quantityNum / dailyUsage;
+          const convertedResult = daysResult * timeConversions[outputUnit];
+          const roundedResult = Math.floor(convertedResult);
+          setResult(`${roundedResult} (${convertedResult.toFixed(1)}) ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
+        }
       }
     } else {  // calculationType === 'quantity'
         const daysNum = parseFloat(daySupply);
@@ -344,13 +356,29 @@ export default function TabTwoScreen() {
                   value={packageSize}
                   onChangeText={setPackageSize}
                   keyboardType="numeric"
-                  placeholder="Package size"
+                  placeholder="Uses per frequency"
                   placeholderTextColor="#666"
                 />
-                <ThemedText style={styles.unitLabel}>units per package</ThemedText>
+                <ThemedText style={styles.unitLabel}>
+                  {weightUnit === 'Eye Drops' ? 'ml per package' : 'uses per frequency'}
+                </ThemedText>
               </View>
 
-              {measurementUnit !== 'units' && (
+              {weightUnit === 'Eye Drops' && (
+                <View style={styles.inputRow}>
+                  <TextInput
+                    style={[styles.input, styles.inputFlex]}
+                    value={dropsPerMl}
+                    onChangeText={setDropsPerMl}
+                    keyboardType="numeric"
+                    placeholder="Drops per ml"
+                    placeholderTextColor="#666"
+                  />
+                  <ThemedText style={styles.unitLabel}>drops/ml</ThemedText>
+                </View>
+              )}
+
+              {measurementUnit !== 'units' && weightUnit !== 'Eye Drops' && (
                 <>
                   <View style={styles.inputRow}>
                     <TextInput

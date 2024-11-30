@@ -131,13 +131,15 @@ export default function TabTwoScreen() {
         }
 
         const convertedResult = daysCount * timeConversions[outputUnit];
-        setResult(`${convertedResult.toFixed(1)} ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
+        const roundedResult = Math.floor(convertedResult);
+        setResult(`${roundedResult} (${convertedResult.toFixed(1)}) ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
       } else {
         // Regular calculation
         const dailyUsage = dosesPerDay * dosagePerUnitNum;
         const daysResult = quantityNum / dailyUsage;
         const convertedResult = daysResult * timeConversions[outputUnit];
-        setResult(`${convertedResult.toFixed(1)} ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
+        const roundedResult = Math.floor(convertedResult);
+        setResult(`${roundedResult} (${convertedResult.toFixed(1)}) ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
       }
     } else {  // calculationType === 'quantity'
         const daysNum = parseFloat(daySupply);

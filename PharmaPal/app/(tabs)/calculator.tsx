@@ -74,6 +74,8 @@ export default function TabTwoScreen() {
   const [packageSizeValue, setPackageSizeValue] = useState('');
   const [beyondUseDateValue, setBeyondUseDateValue] = useState('');
   const [selectedAreas, setSelectedAreas] = useState<Set<string>>(new Set());
+  const [puffsPerPackage, setPuffsPerPackage] = useState('');
+  const [packageGrams, setPackageGrams] = useState('');
 
   const timeConversions: Record<TimeUnit, number> = {
     minute: 1/1440,
@@ -157,6 +159,25 @@ export default function TabTwoScreen() {
         }
 
         resultValue = totalDays;
+      } else if (weightUnit === 'Oral Inhaler') {
+        // Parse inhaler-specific values
+        const puffsNum = parseFloat(puffsPerPackage);
+        const gramsNum = parseFloat(packageGrams);
+        
+        if (isNaN(puffsNum) || isNaN(gramsNum)) {
+          setResult('Please enter valid inhaler values');
+          return;
+        }
+
+        // Calculate puffs per gram
+        const puffsPerGram = puffsNum / gramsNum;
+        
+        // Calculate total puffs available
+        const totalPuffs = quantityNum * puffsPerGram;
+        
+        // Calculate daily puff usage
+        const dailyPuffUsage = dosesPerDay * packageSizeNum;
+        resultValue = totalPuffs / dailyPuffUsage;
       } else if (weightUnit === 'Eye Drops') {
         const totalDrops = adjustedQuantity * dropsPerMlNum;
         resultValue = totalDrops / dosesPerDay;
@@ -450,7 +471,30 @@ export default function TabTwoScreen() {
                 </View>
               )}
 
-              {weightUnit === 'Topical' ? (
+              {weightUnit === 'Oral Inhaler' ? (
+                <View style={styles.inhalerContainer}>
+                  <View style={styles.inhalerInputRow}>
+                    <TextInput
+                      style={[styles.input, styles.inputFlex]}
+                      value={puffsPerPackage}
+                      onChangeText={setPuffsPerPackage}
+                      keyboardType="numeric"
+                      placeholder="Puffs"
+                      placeholderTextColor="#666"
+                    />
+                    <ThemedText style={styles.inhalerText}>puffs per</ThemedText>
+                    <TextInput
+                      style={[styles.input, styles.inputFlex]}
+                      value={packageGrams}
+                      onChangeText={setPackageGrams}
+                      keyboardType="numeric"
+                      placeholder="Grams"
+                      placeholderTextColor="#666"
+                    />
+                    <ThemedText style={styles.inhalerText}>gm</ThemedText>
+                  </View>
+                </View>
+              ) : weightUnit === 'Topical' ? (
                 <View style={styles.topicalContainer}>
                   <ThemedText style={styles.topicalTitle}>Select affected areas:</ThemedText>
                   <View style={styles.topicalButtonsGrid}>
@@ -1029,5 +1073,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
+  },
+  inhalerContainer: {
+    width: '100%',
+    padding: 15,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    marginVertical: 15,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  inhalerInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  inhalerText: {
+    fontSize: 16,
+    color: '#2c3e50',
+    fontWeight: '500',
   },
 });

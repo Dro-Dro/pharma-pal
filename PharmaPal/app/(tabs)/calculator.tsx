@@ -47,6 +47,10 @@ export default function TabTwoScreen() {
   const [concentrationUnit1, setConcentrationUnit1] = useState<MeasurementUnit>('mg');
   const [concentrationUnit2, setConcentrationUnit2] = useState<MeasurementUnit>('ml');
   const [dropsPerMl, setDropsPerMl] = useState('20');
+  const [usePackageSize, setUsePackageSize] = useState(false);
+  const [useBeyondUseDate, setUseBeyondUseDate] = useState(false);
+  const [packageSizeValue, setPackageSizeValue] = useState('');
+  const [beyondUseDateValue, setBeyondUseDateValue] = useState('');
 
   const timeConversions: Record<TimeUnit, number> = {
     minute: 1/1440,
@@ -68,12 +72,20 @@ export default function TabTwoScreen() {
     const quantityNum = parseFloat(quantity);
     const packageSizeNum = parseFloat(packageSize);
     const frequencyNum = parseFloat(frequencyNumber);
-    const dosagePerUnitNum = parseFloat(dosagePerUnit);
     const dropsPerMlNum = parseFloat(dropsPerMl);
     
+    // Adjust quantity based on package size if enabled
+    let adjustedQuantity = quantityNum;
+    if (usePackageSize && packageSizeValue) {
+      const packageSizeMultiple = parseFloat(packageSizeValue);
+      if (!isNaN(packageSizeMultiple) && packageSizeMultiple > 0) {
+        adjustedQuantity = Math.floor(quantityNum / packageSizeMultiple) * packageSizeMultiple;
+      }
+    }
+
     if (calculationType === 'daySupply') {
       // Validate inputs
-      if (isNaN(quantityNum) || isNaN(packageSizeNum) || isNaN(frequencyNum) || 
+      if (isNaN(adjustedQuantity) || isNaN(packageSizeNum) || isNaN(frequencyNum) || 
           (weightUnit === 'Eye Drops' && isNaN(dropsPerMlNum))) {
         setResult('Please enter valid numbers');
         return;
@@ -96,83 +108,39 @@ export default function TabTwoScreen() {
         return getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
       })();
 
+      let resultValue: number;
       if (weightUnit === 'Eye Drops') {
-        // Calculate total drops available
-        const totalDrops = quantityNum * dropsPerMlNum;
-        // Calculate days supply based on drops per day
-        const daysResult = totalDrops / dosesPerDay;
-        const convertedResult = daysResult * timeConversions[outputUnit];
-        const roundedResult = Math.floor(convertedResult);
-        setResult(`${roundedResult} (${convertedResult.toFixed(1)}) ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
+        const totalDrops = adjustedQuantity * dropsPerMlNum;
+        resultValue = totalDrops / dosesPerDay;
       } else {
-        let adjustedDosagePerUnit = parseFloat(dosagePerUnit);
+        const dailyUsage = dosesPerDay * packageSizeNum;
+        resultValue = adjustedQuantity / dailyUsage;
+      }
 
-        if (concentrationEnabled) {
-          const conc1 = parseFloat(concentrationValue1);
-          const conc2 = parseFloat(concentrationValue2);
-          
-          if (isNaN(conc1) || isNaN(conc2) || conc2 === 0) {
-            setResult('Please enter valid concentration values');
-            return;
+      // Convert to output unit
+      let originalResult = resultValue * timeConversions[outputUnit];
+      let finalResult = originalResult;
+      
+      // Apply beyond use date rounding only if the days supply per package exceeds the beyond use period
+      if (useBeyondUseDate && beyondUseDateValue) {
+        const beyondUsePeriod = parseFloat(beyondUseDateValue);
+        if (!isNaN(beyondUsePeriod) && beyondUsePeriod > 0) {
+          const daysPerPackage = (parseFloat(packageSizeValue) * dropsPerMlNum) / dosesPerDay;
+          if (daysPerPackage > beyondUsePeriod) {
+            finalResult = Math.floor(originalResult / beyondUsePeriod) * beyondUsePeriod;
           }
-
-          // Adjust dosage based on concentration ratio
-          adjustedDosagePerUnit = adjustedDosagePerUnit * (conc2 / conc1);
-        }
-
-        if (includeTitration) {
-          const maxDoseNum = parseFloat(maxDose);
-          let currentDose = parseFloat(titrationStages[0].startDose);
-          let totalUnitsNeeded = 0;
-          let remainingQuantity = quantityNum;
-          let daysCount = 0;
-
-          if (isNaN(maxDoseNum)) {
-            setResult('Please enter a valid maximum dose');
-            return;
-          }
-
-          // Calculate through each titration stage
-          for (const stage of titrationStages) {
-            const startDose = parseFloat(stage.startDose);
-            const increment = parseFloat(stage.increment);
-            const freqDays = parseFloat(stage.frequency);
-            
-            if (isNaN(startDose) || isNaN(increment) || isNaN(freqDays)) {
-              setResult('Please enter valid titration values');
-              return;
-            }
-
-            let daysInThisStage = 0;
-            let currentStepDose = startDose;
-
-            while (remainingQuantity > 0 && currentStepDose <= maxDoseNum) {
-              if (remainingQuantity < currentStepDose) break;
-              
-              remainingQuantity -= currentStepDose;
-              daysInThisStage++;
-              daysCount++;
-
-              if (daysInThisStage % freqDays === 0) {
-                currentStepDose = Math.min(currentStepDose + increment, maxDoseNum);
-              }
-            }
-
-            if (remainingQuantity <= 0) break;
-          }
-
-          const convertedResult = daysCount * timeConversions[outputUnit];
-          const roundedResult = Math.floor(convertedResult);
-          setResult(`${roundedResult} (${convertedResult.toFixed(1)}) ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
-        } else {
-          // Regular calculation
-          const dailyUsage = dosesPerDay * adjustedDosagePerUnit;
-          const daysResult = quantityNum / dailyUsage;
-          const convertedResult = daysResult * timeConversions[outputUnit];
-          const roundedResult = Math.floor(convertedResult);
-          setResult(`${roundedResult} (${convertedResult.toFixed(1)}) ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
         }
       }
+
+      const roundedOriginal = Math.floor(originalResult);
+      const roundedFinal = Math.floor(finalResult);
+
+      // Format the result string
+      let resultString = `${roundedFinal} (${finalResult.toFixed(1)}) ${outputUnit}${finalResult === 1 ? '' : 's'}`;
+      if (usePackageSize || useBeyondUseDate) {
+        resultString += `\nOriginal: ${roundedOriginal} (${originalResult.toFixed(1)}) ${outputUnit}${originalResult === 1 ? '' : 's'}`;
+      }
+      setResult(resultString);
     } else {  // calculationType === 'quantity'
         const daysNum = parseFloat(daySupply);
         const frequencyNum = parseFloat(frequencyNumber);
@@ -321,6 +289,47 @@ export default function TabTwoScreen() {
               <ThemedText>Calculate Quantity</ThemedText>
             </TouchableOpacity>
           </View>
+
+          <View style={styles.toggleContainer}>
+            <TouchableOpacity 
+              style={[styles.toggleButton, usePackageSize && styles.toggleButtonActive]}
+              onPress={() => setUsePackageSize(!usePackageSize)}>
+              <ThemedText>Package Size</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.toggleButton, useBeyondUseDate && styles.toggleButtonActive]}
+              onPress={() => setUseBeyondUseDate(!useBeyondUseDate)}>
+              <ThemedText>Beyond Use Date</ThemedText>
+            </TouchableOpacity>
+          </View>
+
+          {usePackageSize && (
+            <View style={styles.inputRow}>
+              <TextInput
+                style={[styles.input, styles.inputFlex]}
+                value={packageSizeValue}
+                onChangeText={setPackageSizeValue}
+                keyboardType="numeric"
+                placeholder="Package size multiple"
+                placeholderTextColor="#666"
+              />
+              <ThemedText style={styles.unitLabel}>units</ThemedText>
+            </View>
+          )}
+
+          {useBeyondUseDate && (
+            <View style={styles.inputRow}>
+              <TextInput
+                style={[styles.input, styles.inputFlex]}
+                value={beyondUseDateValue}
+                onChangeText={setBeyondUseDateValue}
+                keyboardType="numeric"
+                placeholder="Beyond use date period"
+                placeholderTextColor="#666"
+              />
+              <ThemedText style={styles.unitLabel}>{outputUnit}s</ThemedText>
+            </View>
+          )}
 
           {calculationType === 'daySupply' ? (
             <>
@@ -765,6 +774,7 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     width: '45%',
     alignItems: 'center',
+    marginVertical: 5,
   },
   toggleButtonActive: {
     backgroundColor: '#007AFF',

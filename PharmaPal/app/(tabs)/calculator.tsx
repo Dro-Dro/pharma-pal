@@ -17,7 +17,7 @@ type TitrationStage = {
   frequency: string;
 };
 
-type MeasurementUnit = 'mg' | 'ml' | 'g' | 'mcg' | 'units';
+type MeasurementUnit = 'mg' | 'ml' | 'g' | 'gm' | 'mcg' | 'units';
 
 export default function TabTwoScreen() {
   const [weightUnit, setWeightUnit] = useState('kg');
@@ -51,8 +51,9 @@ export default function TabTwoScreen() {
     mcg: 1,           // base unit
     mg: 1000,         // 1 mg = 1000 mcg
     g: 1000000,       // 1 g = 1000 mg = 1,000,000 mcg
-    ml: 1000,         // assuming 1 ml = 1 mg for liquid medications
-    units: 1000,      // assuming 1 unit = 1 mg (common for insulin)
+    gm: 1000000,      // same as g
+    ml: 1000,         // assuming 1 ml = 1 mg
+    units: 1000,      // assuming 1 unit = 1 mg
   };
 
   const calculate = () => {
@@ -330,12 +331,17 @@ export default function TabTwoScreen() {
                 />
                 <Picker
                   selectedValue={measurementUnit}
-                  onValueChange={setMeasurementUnit}
+                  onValueChange={(newUnit) => {
+                    const previousUnit = measurementUnit;
+                    setMeasurementUnit(newUnit);
+                    setPreviousUnit(previousUnit);
+                  }}
                   style={styles.unitPicker}>
                   <Picker.Item label="units" value="units" />
                   <Picker.Item label="mg" value="mg" />
                   <Picker.Item label="ml" value="ml" />
                   <Picker.Item label="g" value="g" />
+                  <Picker.Item label="gm" value="gm" />
                   <Picker.Item label="mcg" value="mcg" />
                 </Picker>
               </View>
@@ -557,6 +563,7 @@ export default function TabTwoScreen() {
                 <Picker.Item label="mg" value="mg" />
                 <Picker.Item label="ml" value="ml" />
                 <Picker.Item label="g" value="g" />
+                <Picker.Item label="gm" value="gm" />
                 <Picker.Item label="mcg" value="mcg" />
               </Picker>
             )}

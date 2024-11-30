@@ -76,6 +76,8 @@ export default function TabTwoScreen() {
   const [selectedAreas, setSelectedAreas] = useState<Set<string>>(new Set());
   const [puffsPerPackage, setPuffsPerPackage] = useState('');
   const [packageGrams, setPackageGrams] = useState('');
+  const [spraysPerPackage, setSpraysPerPackage] = useState('');
+  const [nasalPackageMls, setNasalPackageMls] = useState('');
 
   const timeConversions: Record<TimeUnit, number> = {
     minute: 1/1440,
@@ -178,6 +180,25 @@ export default function TabTwoScreen() {
         // Calculate daily puff usage
         const dailyPuffUsage = dosesPerDay * packageSizeNum;
         resultValue = totalPuffs / dailyPuffUsage;
+      } else if (weightUnit === 'Nasal Inhaler') {
+        // Parse nasal inhaler-specific values
+        const spraysNum = parseFloat(spraysPerPackage);
+        const mlsNum = parseFloat(nasalPackageMls);
+        
+        if (isNaN(spraysNum) || isNaN(mlsNum)) {
+          setResult('Please enter valid inhaler values');
+          return;
+        }
+
+        // Calculate sprays per mL
+        const spraysPerMl = spraysNum / mlsNum;
+        
+        // Calculate total sprays available
+        const totalSprays = quantityNum * spraysPerMl;
+        
+        // Calculate daily spray usage
+        const dailySprayUsage = dosesPerDay * packageSizeNum;
+        resultValue = totalSprays / dailySprayUsage;
       } else if (weightUnit === 'Eye Drops') {
         const totalDrops = adjustedQuantity * dropsPerMlNum;
         resultValue = totalDrops / dosesPerDay;
@@ -261,6 +282,51 @@ export default function TabTwoScreen() {
         const finalQuantity = packagesNeeded * gramsNum;
         
         setResult(`${finalQuantity.toFixed(1)} grams needed`);
+      } else if (weightUnit === 'Nasal Inhaler') {
+        const daysNum = parseFloat(daySupply);
+        const frequencyNum = parseFloat(frequencyNumber);
+        const packageSizeNum = parseFloat(packageSize);
+        
+        // Parse nasal inhaler-specific values
+        const spraysNum = parseFloat(spraysPerPackage);
+        const mlsNum = parseFloat(nasalPackageMls);
+        
+        if (isNaN(spraysNum) || isNaN(mlsNum)) {
+          setResult('Please enter valid inhaler values');
+          return;
+        }
+
+        // Calculate daily spray usage
+        const dosesPerDay = (() => {
+          if (frequencyPattern === 'everyOther') {
+            return 0.5;
+          }
+          if (frequencyUnit === 'hour') {
+            return 24 / frequencyNum;
+          }
+          if (frequencyUnit === 'day') {
+            return frequencyNum;
+          }
+          if (frequencyUnit === 'week') {
+            return frequencyNum / 7;
+          }
+          return getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
+        })();
+
+        const dailySprayUsage = dosesPerDay * packageSizeNum;
+        
+        // Calculate total sprays needed
+        const totalSpraysNeeded = dailySprayUsage * daysNum;
+        
+        // Convert sprays to mLs using the ratio
+        const spraysPerMl = spraysNum / mlsNum;
+        const totalMlsNeeded = totalSpraysNeeded / spraysPerMl;
+        
+        // Round up to the nearest package size
+        const packagesNeeded = Math.ceil(totalMlsNeeded / mlsNum);
+        const finalQuantity = packagesNeeded * mlsNum;
+        
+        setResult(`${finalQuantity.toFixed(1)} mL needed`);
       } else if (includeTitration) {
         const maxDoseNum = parseFloat(maxDose);
         let currentDose = parseFloat(titrationStages[0].startDose);
@@ -533,6 +599,29 @@ export default function TabTwoScreen() {
                       placeholderTextColor="#666"
                     />
                     <ThemedText style={styles.inhalerText}>gm</ThemedText>
+                  </View>
+                </View>
+              ) : weightUnit === 'Nasal Inhaler' ? (
+                <View style={styles.inhalerContainer}>
+                  <View style={styles.inhalerInputRow}>
+                    <TextInput
+                      style={[styles.input, styles.inputFlex]}
+                      value={spraysPerPackage}
+                      onChangeText={setSpraysPerPackage}
+                      keyboardType="numeric"
+                      placeholder="Sprays"
+                      placeholderTextColor="#666"
+                    />
+                    <ThemedText style={styles.inhalerText}>sprays per</ThemedText>
+                    <TextInput
+                      style={[styles.input, styles.inputFlex]}
+                      value={nasalPackageMls}
+                      onChangeText={setNasalPackageMls}
+                      keyboardType="numeric"
+                      placeholder="mL"
+                      placeholderTextColor="#666"
+                    />
+                    <ThemedText style={styles.inhalerText}>mL</ThemedText>
                   </View>
                 </View>
               ) : weightUnit === 'Topical' ? (

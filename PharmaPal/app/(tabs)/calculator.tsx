@@ -17,6 +17,8 @@ type TitrationStage = {
   frequency: string;
 };
 
+type MeasurementUnit = 'mg' | 'ml' | 'g' | 'mcg' | 'units';
+
 export default function TabTwoScreen() {
   const [weightUnit, setWeightUnit] = useState('kg');
   const [quantity, setQuantity] = useState('');
@@ -29,21 +31,28 @@ export default function TabTwoScreen() {
   const [calculationType, setCalculationType] = useState('daySupply');
   const [result, setResult] = useState('');
   const [includeTitration, setIncludeTitration] = useState(false);
-  const [startingDose, setStartingDose] = useState('');
-  const [incrementAmount, setIncrementAmount] = useState('');
-  const [incrementFrequency, setIncrementFrequency] = useState('7');
   const [titrationStages, setTitrationStages] = useState<TitrationStage[]>([{
     startDose: '',
     increment: '',
     frequency: '7'
   }]);
   const [maxDose, setMaxDose] = useState<string>('');
+  const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>('units');
+  const [previousUnit, setPreviousUnit] = useState<MeasurementUnit>('units');
 
   const timeConversions: Record<TimeUnit, number> = {
     minute: 1/1440,
     hour: 1/24,
     day: 1,
     week: 7,
+  };
+
+  const unitConversions: Record<MeasurementUnit, number> = {
+    mg: 1,
+    g: 0.001,
+    mcg: 1000,
+    ml: 1,
+    units: 1,
   };
 
   const calculate = () => {
@@ -319,7 +328,16 @@ export default function TabTwoScreen() {
                   placeholder="Enter quantity"
                   placeholderTextColor="#666"
                 />
-                <ThemedText style={styles.unitLabel}>units</ThemedText>
+                <Picker
+                  selectedValue={measurementUnit}
+                  onValueChange={setMeasurementUnit}
+                  style={styles.unitPicker}>
+                  <Picker.Item label="units" value="units" />
+                  <Picker.Item label="mg" value="mg" />
+                  <Picker.Item label="ml" value="ml" />
+                  <Picker.Item label="g" value="g" />
+                  <Picker.Item label="mcg" value="mcg" />
+                </Picker>
               </View>
 
               <View style={styles.inputRow}>
@@ -512,7 +530,37 @@ export default function TabTwoScreen() {
             onPress={calculate}>
             <ThemedText>Calculate</ThemedText>
           </TouchableOpacity>
-          <ThemedText style={styles.result}>{result}</ThemedText>
+          <View style={[styles.inputRow, styles.resultContainer]}>
+            <ThemedText style={styles.result}>
+              {result ? (() => {
+                if (calculationType === 'daySupply') {
+                  return result;
+                }
+                const numericResult = parseFloat(result);
+                if (isNaN(numericResult)) return result;
+                
+                const convertedValue = numericResult * 
+                  (unitConversions[measurementUnit] / unitConversions[previousUnit]);
+                return convertedValue.toFixed(2);
+              })() : ''}
+            </ThemedText>
+            {result && calculationType === 'quantity' && (
+              <Picker
+                selectedValue={measurementUnit}
+                onValueChange={(newUnit) => {
+                  const previousUnit = measurementUnit;
+                  setMeasurementUnit(newUnit);
+                  setPreviousUnit(previousUnit);
+                }}
+                style={styles.unitPicker}>
+                <Picker.Item label="units" value="units" />
+                <Picker.Item label="mg" value="mg" />
+                <Picker.Item label="ml" value="ml" />
+                <Picker.Item label="g" value="g" />
+                <Picker.Item label="mcg" value="mcg" />
+              </Picker>
+            )}
+          </View>
           <ThemedText style={styles.info}>
             Day Supply Calculation: (Quantity ÷ Package Size) ÷ Frequency
           </ThemedText>
@@ -685,5 +733,9 @@ const styles = StyleSheet.create({
   },
   removeStageText: {
     color: 'white',
+  },
+  resultContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

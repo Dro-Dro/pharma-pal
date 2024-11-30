@@ -40,6 +40,7 @@ export default function TabTwoScreen() {
   const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>('units');
   const [previousUnit, setPreviousUnit] = useState<MeasurementUnit>('units');
   const [dosagePerUnit, setDosagePerUnit] = useState('1');
+  const [dosageUnit, setDosageUnit] = useState<MeasurementUnit>('units');
 
   const timeConversions: Record<TimeUnit, number> = {
     minute: 1/1440,
@@ -64,97 +65,80 @@ export default function TabTwoScreen() {
     const dosagePerUnitNum = parseFloat(dosagePerUnit);
     
     if (calculationType === 'daySupply') {
+      // Validate inputs
       if (isNaN(quantityNum) || isNaN(packageSizeNum) || isNaN(frequencyNum) || 
           (measurementUnit !== 'units' && isNaN(dosagePerUnitNum))) {
         setResult('Please enter valid numbers');
         return;
       }
 
-      let totalUnits = measurementUnit === 'units' 
-        ? (quantityNum / packageSizeNum)
-        : (quantityNum / (dosagePerUnitNum * packageSizeNum));
-      
+      // Calculate doses per day based on frequency
+      const dosesPerDay = (() => {
+        if (frequencyPattern === 'everyOther') {
+          return 0.5;  // once every other day
+        }
+        if (frequencyUnit === 'hour') {
+          return 24 / frequencyNum;  // e.g., every 8 hours = 3 times per day
+        }
+        if (frequencyUnit === 'day') {
+          return frequencyNum;  // e.g., 1 time per day = 1
+        }
+        if (frequencyUnit === 'week') {
+          return frequencyNum / 7;  // convert weekly to daily
+        }
+        return getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
+      })();
+
       if (includeTitration) {
-        let totalTitrationDays = 0;
-        let currentDose = parseFloat(titrationStages[0].startDose);
-        let remainingUnits = quantityNum / packageSizeNum;
         const maxDoseNum = parseFloat(maxDose);
-        
+        let currentDose = parseFloat(titrationStages[0].startDose);
+        let totalUnitsNeeded = 0;
+        let remainingQuantity = quantityNum;
+        let daysCount = 0;
+
         if (isNaN(maxDoseNum)) {
-            setResult('Please enter a valid maximum dose');
-            return;
+          setResult('Please enter a valid maximum dose');
+          return;
         }
 
+        // Calculate through each titration stage
         for (const stage of titrationStages) {
-            const startDose = currentDose;
-            const increment = parseFloat(stage.increment);
-            const freqDays = parseFloat(stage.frequency);
-            
-            if (isNaN(startDose) || isNaN(increment) || isNaN(freqDays)) {
-                setResult('Please enter valid titration values');
-                return;
-            }
+          const startDose = parseFloat(stage.startDose);
+          const increment = parseFloat(stage.increment);
+          const freqDays = parseFloat(stage.frequency);
+          
+          if (isNaN(startDose) || isNaN(increment) || isNaN(freqDays)) {
+            setResult('Please enter valid titration values');
+            return;
+          }
 
-            const stageSteps = Math.ceil((quantityNum - startDose) / increment);
-            
-            // Check each step in this stage
-            for (let step = 0; step < stageSteps; step++) {
-                const doseAtStep = Math.min(startDose + (step * increment), maxDoseNum);
-                
-                // If we've hit the maximum dose, no need to continue incrementing
-                if (doseAtStep >= maxDoseNum) {
-                    // Calculate remaining units at max dose
-                    const unitsAtMaxDose = maxDoseNum * freqDays;
-                    
-                    // Check if we have enough units for this period
-                    if (remainingUnits - unitsAtMaxDose <= 0) {
-                        const daysLeft = remainingUnits / maxDoseNum;
-                        totalTitrationDays += daysLeft;
-                        
-                        const convertedResult = totalTitrationDays / timeConversions[outputUnit];
-                        setResult(`${convertedResult.toFixed(1)} ${outputUnit}${convertedResult === 1 ? '' : 's'} (supply exhausted at max dose)`);
-                        return;
-                    }
-                    
-                    remainingUnits -= unitsAtMaxDose;
-                    totalTitrationDays += freqDays;
-                    continue;
-                }
+          let daysInThisStage = 0;
+          let currentStepDose = startDose;
 
-                const unitsForThisPeriod = doseAtStep * freqDays;
-                
-                // Check if we have enough units left
-                if (remainingUnits - unitsForThisPeriod <= 0) {
-                    const daysLeft = remainingUnits / doseAtStep;
-                    totalTitrationDays += daysLeft;
-                    
-                    const convertedResult = totalTitrationDays / timeConversions[outputUnit];
-                    setResult(`${convertedResult.toFixed(1)} ${outputUnit}${convertedResult === 1 ? '' : 's'} (supply exhausted during titration)`);
-                    return;
-                }
-                
-                remainingUnits -= unitsForThisPeriod;
-                totalTitrationDays += freqDays;
-            }
+          while (remainingQuantity > 0 && currentStepDose <= maxDoseNum) {
+            if (remainingQuantity < currentStepDose) break;
             
-            currentDose = Math.min(startDose + (stageSteps * increment), maxDoseNum);
+            remainingQuantity -= currentStepDose;
+            daysInThisStage++;
+            daysCount++;
+
+            if (daysInThisStage % freqDays === 0) {
+              currentStepDose = Math.min(currentStepDose + increment, maxDoseNum);
+            }
+          }
+
+          if (remainingQuantity <= 0) break;
         }
 
-        // If we still have units left after titration
-        if (remainingUnits > 0) {
-            const dailyRate = getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
-            const remainingDays = remainingUnits / dailyRate;
-            const totalDays = totalTitrationDays + remainingDays;
-            const convertedResult = totalDays / timeConversions[outputUnit];
-            setResult(`${convertedResult.toFixed(1)} ${outputUnit}${convertedResult === 1 ? '' : 's'} (includes ${totalTitrationDays} days of titration)`);
-        }
+        const convertedResult = daysCount * timeConversions[outputUnit];
+        setResult(`${convertedResult.toFixed(1)} ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
       } else {
-        const dailyRate = getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
-        const daysResult = totalUnits / dailyRate;
-        const convertedResult = daysResult / timeConversions[outputUnit];
+        // Regular calculation
+        const dailyUsage = dosesPerDay * dosagePerUnitNum;
+        const daysResult = quantityNum / dailyUsage;
+        const convertedResult = daysResult * timeConversions[outputUnit];
         setResult(`${convertedResult.toFixed(1)} ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
       }
-
     } else {  // calculationType === 'quantity'
         const daysNum = parseFloat(daySupply);
         const frequencyNum = parseFloat(frequencyNumber);
@@ -233,25 +217,10 @@ export default function TabTwoScreen() {
   };
 
   const getFrequencyPerDay = (freq: number, pattern: string, unit: string) => {
-    let baseRate = freq;
+    let baseRate = freq / timeConversions[unit as TimeUnit];
     
-    switch(unit) {
-      case 'minute':
-        baseRate = freq / (1440);
-        break;
-      case 'hour':
-        baseRate = freq / 24;
-        break;
-      case 'day':
-        baseRate = freq;
-        break;
-      case 'week':
-        baseRate = freq * 7;
-        break;
-    }
-
     if (pattern === 'everyOther') {
-      baseRate = baseRate * 2;
+      baseRate = baseRate / 2;
     }
 
     return baseRate;
@@ -369,7 +338,17 @@ export default function TabTwoScreen() {
                     placeholder="Dosage per unit"
                     placeholderTextColor="#666"
                   />
-                  <ThemedText style={styles.unitLabel}>{measurementUnit} per unit</ThemedText>
+                  <Picker
+                    selectedValue={dosageUnit}
+                    onValueChange={setDosageUnit}
+                    style={styles.unitPicker}>
+                    <Picker.Item label="units" value="units" />
+                    <Picker.Item label="mg" value="mg" />
+                    <Picker.Item label="ml" value="ml" />
+                    <Picker.Item label="g" value="g" />
+                    <Picker.Item label="gm" value="gm" />
+                    <Picker.Item label="mcg" value="mcg" />
+                  </Picker>
                 </View>
               )}
 

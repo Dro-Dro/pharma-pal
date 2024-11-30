@@ -39,6 +39,7 @@ export default function TabTwoScreen() {
   const [maxDose, setMaxDose] = useState<string>('');
   const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>('units');
   const [previousUnit, setPreviousUnit] = useState<MeasurementUnit>('units');
+  const [dosagePerUnit, setDosagePerUnit] = useState('1');
 
   const timeConversions: Record<TimeUnit, number> = {
     minute: 1/1440,
@@ -52,7 +53,7 @@ export default function TabTwoScreen() {
     mg: 1000,         // 1 mg = 1000 mcg
     g: 1000000,       // 1 g = 1000 mg = 1,000,000 mcg
     gm: 1000000,      // same as g
-    ml: 1000,         // assuming 1 ml = 1 mg
+    ml: 1000000,      // 1 ml = 1000 mg = 1,000,000 mcg
     units: 1000,      // assuming 1 unit = 1 mg
   };
 
@@ -60,18 +61,18 @@ export default function TabTwoScreen() {
     const quantityNum = parseFloat(quantity);
     const packageSizeNum = parseFloat(packageSize);
     const frequencyNum = parseFloat(frequencyNumber);
+    const dosagePerUnitNum = parseFloat(dosagePerUnit);
     
     if (calculationType === 'daySupply') {
-      if (isNaN(quantityNum) || isNaN(packageSizeNum) || isNaN(frequencyNum)) {
+      if (isNaN(quantityNum) || isNaN(packageSizeNum) || isNaN(frequencyNum) || 
+          (measurementUnit !== 'units' && isNaN(dosagePerUnitNum))) {
         setResult('Please enter valid numbers');
         return;
       }
-      if (quantityNum <= 0 || packageSizeNum <= 0 || frequencyNum <= 0) {
-        setResult('Values must be greater than 0');
-        return;
-      }
 
-      let totalUnits = (quantityNum / packageSizeNum);
+      let totalUnits = measurementUnit === 'units' 
+        ? (quantityNum / packageSizeNum)
+        : (quantityNum / (dosagePerUnitNum * packageSizeNum));
       
       if (includeTitration) {
         let totalTitrationDays = 0;
@@ -358,6 +359,20 @@ export default function TabTwoScreen() {
                 <ThemedText style={styles.unitLabel}>units per package</ThemedText>
               </View>
 
+              {measurementUnit !== 'units' && (
+                <View style={styles.inputRow}>
+                  <TextInput
+                    style={[styles.input, styles.inputFlex]}
+                    value={dosagePerUnit}
+                    onChangeText={setDosagePerUnit}
+                    keyboardType="numeric"
+                    placeholder="Dosage per unit"
+                    placeholderTextColor="#666"
+                  />
+                  <ThemedText style={styles.unitLabel}>{measurementUnit} per unit</ThemedText>
+                </View>
+              )}
+
               <View style={styles.titrationToggle}>
                 <TouchableOpacity 
                   style={[styles.toggleButton, includeTitration && styles.toggleButtonActive]}
@@ -569,7 +584,9 @@ export default function TabTwoScreen() {
             )}
           </View>
           <ThemedText style={styles.info}>
-            Day Supply Calculation: (Quantity ÷ Package Size) ÷ Frequency
+            {measurementUnit === 'units' 
+              ? 'Day Supply Calculation: (Quantity ÷ Package Size) ÷ Frequency'
+              : 'Day Supply Calculation: (Quantity ÷ (Dosage per unit × Units per package)) ÷ Frequency'}
           </ThemedText>
         </ThemedView>
     </ParallaxScrollView>

@@ -48,11 +48,11 @@ export default function TabTwoScreen() {
   };
 
   const unitConversions: Record<MeasurementUnit, number> = {
-    mg: 1,
-    g: 0.001,
-    mcg: 1000,
-    ml: 1,
-    units: 1,
+    mcg: 1,           // base unit
+    mg: 1000,         // 1 mg = 1000 mcg
+    g: 1000000,       // 1 g = 1000 mg = 1,000,000 mcg
+    ml: 1000,         // assuming 1 ml = 1 mg for liquid medications
+    units: 1000,      // assuming 1 unit = 1 mg (common for insulin)
   };
 
   const calculate = () => {

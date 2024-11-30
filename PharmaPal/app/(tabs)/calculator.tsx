@@ -211,79 +211,120 @@ export default function TabTwoScreen() {
       }
       setResult(resultString);
     } else {  // calculationType === 'quantity'
-        const daysNum = parseFloat(daySupply);
-        const frequencyNum = parseFloat(frequencyNumber);
-        const packageSizeNum = parseFloat(packageSize);
+      const daysNum = parseFloat(daySupply);
+      const frequencyNum = parseFloat(frequencyNumber);
+      const packageSizeNum = parseFloat(packageSize);
+      
+      if (isNaN(daysNum) || isNaN(frequencyNum) || isNaN(packageSizeNum)) {
+        setResult('Please enter valid numbers');
+        return;
+      }
+
+      if (weightUnit === 'Oral Inhaler') {
+        // Parse inhaler-specific values
+        const puffsNum = parseFloat(puffsPerPackage);
+        const gramsNum = parseFloat(packageGrams);
         
-        if (isNaN(daysNum) || isNaN(frequencyNum) || isNaN(packageSizeNum)) {
-            setResult('Please enter valid numbers');
+        if (isNaN(puffsNum) || isNaN(gramsNum)) {
+          setResult('Please enter valid inhaler values');
+          return;
+        }
+
+        // Calculate daily puff usage
+        const dosesPerDay = (() => {
+          if (frequencyPattern === 'everyOther') {
+            return 0.5;
+          }
+          if (frequencyUnit === 'hour') {
+            return 24 / frequencyNum;
+          }
+          if (frequencyUnit === 'day') {
+            return frequencyNum;
+          }
+          if (frequencyUnit === 'week') {
+            return frequencyNum / 7;
+          }
+          return getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
+        })();
+
+        const dailyPuffUsage = dosesPerDay * packageSizeNum;
+        
+        // Calculate total puffs needed
+        const totalPuffsNeeded = dailyPuffUsage * daysNum;
+        
+        // Convert puffs to grams using the ratio
+        const puffsPerGram = puffsNum / gramsNum;
+        const totalGramsNeeded = totalPuffsNeeded / puffsPerGram;
+        
+        // Round up to the nearest package size
+        const packagesNeeded = Math.ceil(totalGramsNeeded / gramsNum);
+        const finalQuantity = packagesNeeded * gramsNum;
+        
+        setResult(`${finalQuantity.toFixed(1)} grams needed`);
+      } else if (includeTitration) {
+        const maxDoseNum = parseFloat(maxDose);
+        let currentDose = parseFloat(titrationStages[0].startDose);
+        let totalUnitsNeeded = 0;
+        let remainingDays = daysNum * timeConversions[outputUnit];
+
+        if (isNaN(maxDoseNum)) {
+          setResult('Please enter a valid maximum dose');
+          return;
+        }
+
+        // Calculate units needed during titration
+        for (const stage of titrationStages) {
+          const startDose = currentDose;
+          const increment = parseFloat(stage.increment);
+          const freqDays = parseFloat(stage.frequency);
+          
+          if (isNaN(startDose) || isNaN(increment) || isNaN(freqDays)) {
+            setResult('Please enter valid titration values');
             return;
+          }
+
+          let daysInThisStage = 0;
+          let stageUnits = 0;
+          let currentStepDose = startDose;
+
+          while (daysInThisStage < remainingDays && currentStepDose < maxDoseNum) {
+            stageUnits += currentStepDose * freqDays;
+            currentStepDose = Math.min(currentStepDose + increment, maxDoseNum);
+            daysInThisStage += freqDays;
+
+            if (daysInThisStage > remainingDays) {
+              // Adjust for partial period
+              const excess = daysInThisStage - remainingDays;
+              stageUnits -= (currentStepDose * excess);
+              daysInThisStage = remainingDays;
+            }
+          }
+
+          totalUnitsNeeded += stageUnits;
+          remainingDays -= daysInThisStage;
+          currentDose = currentStepDose;
+
+          if (remainingDays <= 0) break;
         }
 
-        if (includeTitration) {
-            const maxDoseNum = parseFloat(maxDose);
-            let currentDose = parseFloat(titrationStages[0].startDose);
-            let totalUnitsNeeded = 0;
-            let remainingDays = daysNum * timeConversions[outputUnit];
-
-            if (isNaN(maxDoseNum)) {
-                setResult('Please enter a valid maximum dose');
-                return;
-            }
-
-            // Calculate units needed during titration
-            for (const stage of titrationStages) {
-                const startDose = currentDose;
-                const increment = parseFloat(stage.increment);
-                const freqDays = parseFloat(stage.frequency);
-                
-                if (isNaN(startDose) || isNaN(increment) || isNaN(freqDays)) {
-                    setResult('Please enter valid titration values');
-                    return;
-                }
-
-                let daysInThisStage = 0;
-                let stageUnits = 0;
-                let currentStepDose = startDose;
-
-                while (daysInThisStage < remainingDays && currentStepDose < maxDoseNum) {
-                    stageUnits += currentStepDose * freqDays;
-                    currentStepDose = Math.min(currentStepDose + increment, maxDoseNum);
-                    daysInThisStage += freqDays;
-
-                    if (daysInThisStage > remainingDays) {
-                        // Adjust for partial period
-                        const excess = daysInThisStage - remainingDays;
-                        stageUnits -= (currentStepDose * excess);
-                        daysInThisStage = remainingDays;
-                    }
-                }
-
-                totalUnitsNeeded += stageUnits;
-                remainingDays -= daysInThisStage;
-                currentDose = currentStepDose;
-
-                if (remainingDays <= 0) break;
-            }
-
-            // If there are remaining days, calculate units at max dose
-            if (remainingDays > 0) {
-                totalUnitsNeeded += maxDoseNum * remainingDays;
-            }
-
-            // Adjust for package size
-            const totalPackages = Math.ceil(totalUnitsNeeded / packageSizeNum);
-            const finalQuantity = totalPackages * packageSizeNum;
-            
-            setResult(`${finalQuantity} units needed`);
-
-        } else {
-            // Regular quantity calculation without titration
-            const actualDays = daysNum * timeConversions[outputUnit];
-            const dailyRate = getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
-            const quantityNeeded = (actualDays * dailyRate) * packageSizeNum;
-            setResult(`${Math.ceil(quantityNeeded)} units needed`);
+        // If there are remaining days, calculate units at max dose
+        if (remainingDays > 0) {
+          totalUnitsNeeded += maxDoseNum * remainingDays;
         }
+
+        // Adjust for package size
+        const totalPackages = Math.ceil(totalUnitsNeeded / packageSizeNum);
+        const finalQuantity = totalPackages * packageSizeNum;
+        
+        setResult(`${finalQuantity} units needed`);
+
+      } else {
+        // Regular quantity calculation without titration
+        const actualDays = daysNum * timeConversions[outputUnit];
+        const dailyRate = getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
+        const quantityNeeded = (actualDays * dailyRate) * packageSizeNum;
+        setResult(`${Math.ceil(quantityNeeded)} units needed`);
+      }
     }
   };
 

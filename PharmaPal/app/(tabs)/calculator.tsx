@@ -11,6 +11,12 @@ import { ThemedView } from '@/components/ThemedView';
 
 type TimeUnit = 'minute' | 'hour' | 'day' | 'week';
 
+type TitrationStage = {
+  startDose: string;
+  increment: string;
+  frequency: string;
+};
+
 export default function TabTwoScreen() {
   const [weightUnit, setWeightUnit] = useState('kg');
   const [quantity, setQuantity] = useState('');
@@ -26,6 +32,12 @@ export default function TabTwoScreen() {
   const [startingDose, setStartingDose] = useState('');
   const [incrementAmount, setIncrementAmount] = useState('');
   const [incrementFrequency, setIncrementFrequency] = useState('7');
+  const [titrationStages, setTitrationStages] = useState<TitrationStage[]>([{
+    startDose: '',
+    increment: '',
+    frequency: '7'
+  }]);
+  const [maxDose, setMaxDose] = useState<string>('');
 
   const timeConversions: Record<TimeUnit, number> = {
     minute: 1/1440,
@@ -52,65 +64,183 @@ export default function TabTwoScreen() {
       let totalUnits = (quantityNum / packageSizeNum);
       
       if (includeTitration) {
-        const startDose = parseFloat(startingDose);
-        const increment = parseFloat(incrementAmount);
-        const freqDays = parseFloat(incrementFrequency);
+        let totalTitrationDays = 0;
+        let currentDose = parseFloat(titrationStages[0].startDose);
+        let remainingUnits = quantityNum / packageSizeNum;
+        const maxDoseNum = parseFloat(maxDose);
         
-        if (isNaN(startDose) || isNaN(increment) || isNaN(freqDays)) {
-          setResult('Please enter valid titration values');
-          return;
+        if (isNaN(maxDoseNum)) {
+            setResult('Please enter a valid maximum dose');
+            return;
         }
 
-        const finalDose = quantityNum;
-        const steps = Math.ceil((finalDose - startDose) / increment);
-        const titrationDays = steps * freqDays;
-        
-        const regularDays = totalUnits * getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
-        const daysResult = regularDays + titrationDays;
-        const convertedResult = daysResult / timeConversions[outputUnit];
-        setResult(`${convertedResult.toFixed(1)} ${outputUnit}${convertedResult === 1 ? '' : 's'} (includes ${titrationDays} days of titration)`);
+        for (const stage of titrationStages) {
+            const startDose = currentDose;
+            const increment = parseFloat(stage.increment);
+            const freqDays = parseFloat(stage.frequency);
+            
+            if (isNaN(startDose) || isNaN(increment) || isNaN(freqDays)) {
+                setResult('Please enter valid titration values');
+                return;
+            }
+
+            const stageSteps = Math.ceil((quantityNum - startDose) / increment);
+            
+            // Check each step in this stage
+            for (let step = 0; step < stageSteps; step++) {
+                const doseAtStep = Math.min(startDose + (step * increment), maxDoseNum);
+                
+                // If we've hit the maximum dose, no need to continue incrementing
+                if (doseAtStep >= maxDoseNum) {
+                    // Calculate remaining units at max dose
+                    const unitsAtMaxDose = maxDoseNum * freqDays;
+                    
+                    // Check if we have enough units for this period
+                    if (remainingUnits - unitsAtMaxDose <= 0) {
+                        const daysLeft = remainingUnits / maxDoseNum;
+                        totalTitrationDays += daysLeft;
+                        
+                        const convertedResult = totalTitrationDays / timeConversions[outputUnit];
+                        setResult(`${convertedResult.toFixed(1)} ${outputUnit}${convertedResult === 1 ? '' : 's'} (supply exhausted at max dose)`);
+                        return;
+                    }
+                    
+                    remainingUnits -= unitsAtMaxDose;
+                    totalTitrationDays += freqDays;
+                    continue;
+                }
+
+                const unitsForThisPeriod = doseAtStep * freqDays;
+                
+                // Check if we have enough units left
+                if (remainingUnits - unitsForThisPeriod <= 0) {
+                    const daysLeft = remainingUnits / doseAtStep;
+                    totalTitrationDays += daysLeft;
+                    
+                    const convertedResult = totalTitrationDays / timeConversions[outputUnit];
+                    setResult(`${convertedResult.toFixed(1)} ${outputUnit}${convertedResult === 1 ? '' : 's'} (supply exhausted during titration)`);
+                    return;
+                }
+                
+                remainingUnits -= unitsForThisPeriod;
+                totalTitrationDays += freqDays;
+            }
+            
+            currentDose = Math.min(startDose + (stageSteps * increment), maxDoseNum);
+        }
+
+        // If we still have units left after titration
+        if (remainingUnits > 0) {
+            const dailyRate = getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
+            const remainingDays = remainingUnits / dailyRate;
+            const totalDays = totalTitrationDays + remainingDays;
+            const convertedResult = totalDays / timeConversions[outputUnit];
+            setResult(`${convertedResult.toFixed(1)} ${outputUnit}${convertedResult === 1 ? '' : 's'} (includes ${totalTitrationDays} days of titration)`);
+        }
       } else {
         const dailyRate = getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
-        const daysResult = totalUnits * dailyRate;
+        const daysResult = totalUnits / dailyRate;
         const convertedResult = daysResult / timeConversions[outputUnit];
         setResult(`${convertedResult.toFixed(1)} ${outputUnit}${convertedResult === 1 ? '' : 's'}`);
       }
 
-    } else {
-      const daysNum = parseFloat(daySupply);
-      
-      if (isNaN(daysNum)) {
-        setResult('Please enter valid numbers');
-        return;
-      }
+    } else {  // calculationType === 'quantity'
+        const daysNum = parseFloat(daySupply);
+        const frequencyNum = parseFloat(frequencyNumber);
+        const packageSizeNum = parseFloat(packageSize);
+        
+        if (isNaN(daysNum) || isNaN(frequencyNum) || isNaN(packageSizeNum)) {
+            setResult('Please enter valid numbers');
+            return;
+        }
 
-      const dailyRate = getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
-      const actualDays = daysNum * timeConversions[outputUnit];
-      const quantityNeeded = (actualDays / dailyRate) * packageSizeNum;
-      setResult(`${Math.ceil(quantityNeeded)} units needed`);
+        if (includeTitration) {
+            const maxDoseNum = parseFloat(maxDose);
+            let currentDose = parseFloat(titrationStages[0].startDose);
+            let totalUnitsNeeded = 0;
+            let remainingDays = daysNum * timeConversions[outputUnit];
+
+            if (isNaN(maxDoseNum)) {
+                setResult('Please enter a valid maximum dose');
+                return;
+            }
+
+            // Calculate units needed during titration
+            for (const stage of titrationStages) {
+                const startDose = currentDose;
+                const increment = parseFloat(stage.increment);
+                const freqDays = parseFloat(stage.frequency);
+                
+                if (isNaN(startDose) || isNaN(increment) || isNaN(freqDays)) {
+                    setResult('Please enter valid titration values');
+                    return;
+                }
+
+                let daysInThisStage = 0;
+                let stageUnits = 0;
+                let currentStepDose = startDose;
+
+                while (daysInThisStage < remainingDays && currentStepDose < maxDoseNum) {
+                    stageUnits += currentStepDose * freqDays;
+                    currentStepDose = Math.min(currentStepDose + increment, maxDoseNum);
+                    daysInThisStage += freqDays;
+
+                    if (daysInThisStage > remainingDays) {
+                        // Adjust for partial period
+                        const excess = daysInThisStage - remainingDays;
+                        stageUnits -= (currentStepDose * excess);
+                        daysInThisStage = remainingDays;
+                    }
+                }
+
+                totalUnitsNeeded += stageUnits;
+                remainingDays -= daysInThisStage;
+                currentDose = currentStepDose;
+
+                if (remainingDays <= 0) break;
+            }
+
+            // If there are remaining days, calculate units at max dose
+            if (remainingDays > 0) {
+                totalUnitsNeeded += maxDoseNum * remainingDays;
+            }
+
+            // Adjust for package size
+            const totalPackages = Math.ceil(totalUnitsNeeded / packageSizeNum);
+            const finalQuantity = totalPackages * packageSizeNum;
+            
+            setResult(`${finalQuantity} units needed`);
+
+        } else {
+            // Regular quantity calculation without titration
+            const actualDays = daysNum * timeConversions[outputUnit];
+            const dailyRate = getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
+            const quantityNeeded = (actualDays * dailyRate) * packageSizeNum;
+            setResult(`${Math.ceil(quantityNeeded)} units needed`);
+        }
     }
   };
 
   const getFrequencyPerDay = (freq: number, pattern: string, unit: string) => {
-    let baseRate = 1;
+    let baseRate = freq;
     
     switch(unit) {
       case 'minute':
-        baseRate = 1 / (freq * timeConversions.minute);
+        baseRate = freq / (1440);
         break;
       case 'hour':
-        baseRate = 1 / (freq * timeConversions.hour);
+        baseRate = freq / 24;
         break;
       case 'day':
-        baseRate = 1 / freq;
+        baseRate = freq;
         break;
       case 'week':
-        baseRate = 1 / (freq * 7);
+        baseRate = freq * 7;
         break;
     }
 
     if (pattern === 'everyOther') {
-      baseRate = baseRate / 2;
+      baseRate = baseRate * 2;
     }
 
     return baseRate;
@@ -217,38 +347,91 @@ export default function TabTwoScreen() {
                   <View style={styles.inputRow}>
                     <TextInput
                       style={[styles.input, styles.inputFlex]}
-                      value={startingDose}
-                      onChangeText={setStartingDose}
+                      value={maxDose}
+                      onChangeText={setMaxDose}
                       keyboardType="numeric"
-                      placeholder="Starting dose"
+                      placeholder="Maximum dose"
                       placeholderTextColor="#666"
                     />
                     <ThemedText style={styles.unitLabel}>units</ThemedText>
                   </View>
 
-                  <View style={styles.inputRow}>
-                    <TextInput
-                      style={[styles.input, styles.inputFlex]}
-                      value={incrementAmount}
-                      onChangeText={setIncrementAmount}
-                      keyboardType="numeric"
-                      placeholder="Increase by"
-                      placeholderTextColor="#666"
-                    />
-                    <ThemedText style={styles.unitLabel}>units</ThemedText>
-                  </View>
+                  {titrationStages.map((stage, index) => (
+                    <View key={index} style={styles.titrationStage}>
+                      <ThemedText style={styles.stageTitle}>Stage {index + 1}</ThemedText>
+                      
+                      <View style={styles.inputRow}>
+                        <TextInput
+                          style={[styles.input, styles.inputFlex]}
+                          value={stage.startDose}
+                          onChangeText={(value) => {
+                            const newStages = [...titrationStages];
+                            newStages[index].startDose = value;
+                            setTitrationStages(newStages);
+                          }}
+                          keyboardType="numeric"
+                          placeholder="Starting dose"
+                          placeholderTextColor="#666"
+                        />
+                        <ThemedText style={styles.unitLabel}>units</ThemedText>
+                      </View>
 
-                  <View style={styles.inputRow}>
-                    <TextInput
-                      style={[styles.input, styles.inputFlex]}
-                      value={incrementFrequency}
-                      onChangeText={setIncrementFrequency}
-                      keyboardType="numeric"
-                      placeholder="Days between increases"
-                      placeholderTextColor="#666"
-                    />
-                    <ThemedText style={styles.unitLabel}>days</ThemedText>
-                  </View>
+                      <View style={styles.inputRow}>
+                        <TextInput
+                          style={[styles.input, styles.inputFlex]}
+                          value={stage.increment}
+                          onChangeText={(value) => {
+                            const newStages = [...titrationStages];
+                            newStages[index].increment = value;
+                            setTitrationStages(newStages);
+                          }}
+                          keyboardType="numeric"
+                          placeholder="Increase by"
+                          placeholderTextColor="#666"
+                        />
+                        <ThemedText style={styles.unitLabel}>units</ThemedText>
+                      </View>
+
+                      <View style={styles.inputRow}>
+                        <TextInput
+                          style={[styles.input, styles.inputFlex]}
+                          value={stage.frequency}
+                          onChangeText={(value) => {
+                            const newStages = [...titrationStages];
+                            newStages[index].frequency = value;
+                            setTitrationStages(newStages);
+                          }}
+                          keyboardType="numeric"
+                          placeholder="Days between increases"
+                          placeholderTextColor="#666"
+                        />
+                        <ThemedText style={styles.unitLabel}>days</ThemedText>
+                      </View>
+
+                      {titrationStages.length > 1 && (
+                        <TouchableOpacity 
+                          style={styles.removeStageButton}
+                          onPress={() => {
+                            const newStages = titrationStages.filter((_, i) => i !== index);
+                            setTitrationStages(newStages);
+                          }}>
+                          <ThemedText style={styles.removeStageText}>Remove Stage</ThemedText>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                  
+                  <TouchableOpacity 
+                    style={styles.addStageButton}
+                    onPress={() => {
+                      setTitrationStages([...titrationStages, {
+                        startDose: '',
+                        increment: '',
+                        frequency: '7'
+                      }]);
+                    }}>
+                    <ThemedText>Add Stage</ThemedText>
+                  </TouchableOpacity>
                 </View>
               )}
             </>
@@ -331,7 +514,7 @@ export default function TabTwoScreen() {
           </TouchableOpacity>
           <ThemedText style={styles.result}>{result}</ThemedText>
           <ThemedText style={styles.info}>
-            Day Supply Calculation: (Quantity ÷ Package Size) × Frequency
+            Day Supply Calculation: (Quantity ÷ Package Size) ÷ Frequency
           </ThemedText>
         </ThemedView>
     </ParallaxScrollView>
@@ -474,5 +657,33 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
     alignItems: 'center',
+  },
+  titrationStage: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 15,
+  },
+  stageTitle: {
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  addStageButton: {
+    backgroundColor: '#91e655',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  removeStageButton: {
+    backgroundColor: '#ff4444',
+    padding: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  removeStageText: {
+    color: 'white',
   },
 });

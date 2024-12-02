@@ -231,15 +231,29 @@ export default function TabTwoScreen() {
           return;
         }
 
-        // Calculate puffs per gram
-        const puffsPerGram = puffsNum / gramsNum;
-        
+        // Calculate doses per day
+        const dosesPerDay = (() => {
+          if (frequencyPattern === 'everyOther') {
+            return 0.5 * parseFloat(packageSize);
+          }
+          if (frequencyUnit === 'hour') {
+            return (24 / parseFloat(frequencyNumber)) * parseFloat(packageSize);
+          }
+          if (frequencyUnit === 'day') {
+            return parseFloat(frequencyNumber) * parseFloat(packageSize);
+          }
+          if (frequencyUnit === 'week') {
+            return (parseFloat(frequencyNumber) / 7) * parseFloat(packageSize);
+          }
+          return getFrequencyPerDay(parseFloat(frequencyNumber), frequencyPattern, frequencyUnit) * parseFloat(packageSize);
+        })();
+
         // Calculate total puffs available
-        const totalPuffs = quantityNum * puffsPerGram;
+        const totalPuffs = puffsNum * (quantityNum / gramsNum);
         
-        // Calculate daily puff usage
-        const dailyPuffUsage = dosesPerDay * packageSizeNum;
-        resultValue = totalPuffs / dailyPuffUsage;
+        // Calculate days supply
+        resultValue = totalPuffs / dosesPerDay;
+
       } else if (weightUnit === 'Nasal Inhaler') {
         // Parse nasal inhaler-specific values
         const spraysNum = parseFloat(spraysPerPackage);
@@ -476,6 +490,48 @@ export default function TabTwoScreen() {
         });
 
         setResult(`${finalQuantity} grams needed`);
+      } else if (weightUnit === 'Oral Inhaler') {
+        // Parse inhaler-specific values
+        const puffsNum = parseFloat(puffsPerPackage);
+        const gramsNum = parseFloat(packageGrams);
+        
+        if (isNaN(puffsNum) || isNaN(gramsNum)) {
+          setResult('Please enter valid inhaler values');
+          return;
+        }
+
+        // Calculate doses per day
+        const dosesPerDay = (() => {
+          if (frequencyPattern === 'everyOther') {
+            return 0.5 * parseFloat(packageSize);
+          }
+          if (frequencyUnit === 'hour') {
+            return (24 / parseFloat(frequencyNumber)) * parseFloat(packageSize);
+          }
+          if (frequencyUnit === 'day') {
+            return parseFloat(frequencyNumber) * parseFloat(packageSize);
+          }
+          if (frequencyUnit === 'week') {
+            return (parseFloat(frequencyNumber) / 7) * parseFloat(packageSize);
+          }
+          return getFrequencyPerDay(parseFloat(frequencyNumber), frequencyPattern, frequencyUnit) * parseFloat(packageSize);
+        })();
+
+        // Convert target days to actual days based on time unit
+        const actualDays = parseFloat(daySupply) * timeConversions[outputUnit];
+
+        // Calculate total puffs needed
+        const totalPuffsNeeded = actualDays * dosesPerDay;
+        
+        // Calculate grams needed based on puffs per gram ratio
+        const puffsPerGram = puffsNum / gramsNum;
+        const gramsNeeded = totalPuffsNeeded / puffsPerGram;
+        
+        // Round up to nearest whole gram
+        const finalGrams = Math.ceil(gramsNeeded);
+
+        setResult(`${finalGrams} grams needed`);
+        return;
       }
     }
   };
@@ -660,6 +716,18 @@ export default function TabTwoScreen() {
                   </Picker>
                 </View>
               )}
+
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={[styles.input, styles.inputFlex]}
+                  value={packageSize}
+                  onChangeText={setPackageSize}
+                  keyboardType="numeric"
+                  placeholder="Uses per frequency"
+                  placeholderTextColor="#666"
+                />
+                <ThemedText style={styles.unitLabel}>uses per frequency</ThemedText>
+              </View>
 
               {weightUnit === 'Eye Drops' && (
                 <View style={styles.inputRow}>

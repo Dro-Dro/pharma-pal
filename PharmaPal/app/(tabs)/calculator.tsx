@@ -364,6 +364,54 @@ export default function TabTwoScreen() {
         });
 
         setResult(`${finalQuantity} mL needed`);
+      } else if (includeTitration && maxDose) {
+        console.log('Quantity Calculation Initial Values:', {
+          targetDays: daysNum,
+          startDose: parseFloat(titrationStages[0].startDose),
+          increment: parseFloat(titrationStages[0].increment),
+          frequency: parseFloat(titrationStages[0].frequency),
+          maxDose: parseFloat(maxDose)
+        });
+
+        const maxDoseNum = parseFloat(maxDose);
+        let currentDose = parseFloat(titrationStages[0].startDose);
+        let totalQuantity = 0;
+        let remainingDays = daysNum;
+
+        // Calculate quantity needed for each titration stage
+        while (remainingDays > 0 && currentDose <= maxDoseNum) {
+          const daysInStage = Math.min(
+            parseFloat(titrationStages[0].frequency),
+            remainingDays
+          );
+
+          totalQuantity += currentDose * daysInStage;
+          remainingDays -= daysInStage;
+          currentDose = Math.min(
+            currentDose + parseFloat(titrationStages[0].increment),
+            maxDoseNum
+          );
+
+          console.log('Quantity Step:', {
+            currentDose,
+            daysInStage,
+            remainingDays,
+            totalQuantity
+          });
+
+          // If we've reached max dose, calculate remaining days
+          if (currentDose >= maxDoseNum && remainingDays > 0) {
+            totalQuantity += maxDoseNum * remainingDays;
+            console.log('Final Max Dose Step:', {
+              remainingDays,
+              maxDoseNum,
+              totalQuantity
+            });
+            break;
+          }
+        }
+
+        setResult(`${totalQuantity} units needed`);
       }
     }
   };
@@ -902,7 +950,7 @@ export default function TabTwoScreen() {
           <View style={[styles.inputRow, styles.resultContainer]}>
             <ThemedText style={styles.result}>
               {result ? (() => {
-                if (calculationType === 'daySupply' || weightUnit === 'Eye Drops') {
+                if (calculationType === 'daySupply') {
                   return result;
                 }
                 const numericResult = parseFloat(result);
@@ -913,7 +961,7 @@ export default function TabTwoScreen() {
                 return convertedValue.toFixed(2);
               })() : ''}
             </ThemedText>
-            {result && calculationType === 'quantity' && weightUnit !== 'Eye Drops' && (
+            {result && calculationType === 'quantity' && (
               <Picker
                 selectedValue={measurementUnit}
                 onValueChange={(newUnit) => {

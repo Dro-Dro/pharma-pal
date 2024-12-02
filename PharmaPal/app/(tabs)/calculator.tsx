@@ -412,6 +412,66 @@ export default function TabTwoScreen() {
         }
 
         setResult(`${totalQuantity} units needed`);
+      } else if (weightUnit === 'Topical') {
+        // Calculate doses per day
+        const dosesPerDay = (() => {
+          console.log('Frequency Values:', {
+            frequencyNum,
+            packageSizeNum,
+            frequencyPattern,
+            frequencyUnit,
+            expectedDosesPerDay: 2
+          });
+
+          if (frequencyPattern === 'everyOther') {
+            return 0.5 * packageSizeNum;
+          }
+          if (frequencyUnit === 'hour') {
+            return (24 / frequencyNum) * packageSizeNum;
+          }
+          if (frequencyUnit === 'day') {
+            return frequencyNum * packageSizeNum;  // This will now be 2 * packageSize
+          }
+          if (frequencyUnit === 'week') {
+            return (frequencyNum / 7) * packageSizeNum;
+          }
+          return getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit) * packageSizeNum;
+        })();
+
+        console.log('Detailed Topical Values:', {
+          frequencyNum,
+          frequencyPattern,
+          frequencyUnit,
+          dosesPerDay,
+          selectedAreas: Array.from(selectedAreas),
+          packageSizeNum,
+          daysNum
+        });
+
+        // Calculate total grams per application
+        const totalGramsPerApplication = TOPICAL_AREAS
+          .filter(area => selectedAreas.has(area.name))
+          .reduce((sum, area) => sum + area.grams, 0);
+
+        // Calculate total grams needed
+        const totalGramsNeeded = totalGramsPerApplication * dosesPerDay * daysNum;
+        
+        // Calculate number of packages needed (round up)
+        const packagesNeeded = Math.ceil(totalGramsNeeded / packageSizeNum);
+        
+        // Final quantity is number of packages times package size
+        const finalQuantity = packagesNeeded * packageSizeNum;
+
+        console.log('Final Calculations:', {
+          totalGramsPerApplication,
+          dosesPerDay,
+          daysNum,
+          totalGramsNeeded,
+          packagesNeeded,
+          finalQuantity
+        });
+
+        setResult(`${finalQuantity} grams needed`);
       }
     }
   };

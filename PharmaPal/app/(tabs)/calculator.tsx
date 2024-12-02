@@ -949,35 +949,8 @@ export default function TabTwoScreen() {
           </TouchableOpacity>
           <View style={[styles.inputRow, styles.resultContainer]}>
             <ThemedText style={styles.result}>
-              {result ? (() => {
-                if (calculationType === 'daySupply') {
-                  return result;
-                }
-                const numericResult = parseFloat(result);
-                if (isNaN(numericResult)) return result;
-                
-                const convertedValue = numericResult * 
-                  (unitConversions[measurementUnit] / unitConversions[previousUnit]);
-                return convertedValue.toFixed(2);
-              })() : ''}
+              {result ? result : ''}
             </ThemedText>
-            {result && calculationType === 'quantity' && (
-              <Picker
-                selectedValue={measurementUnit}
-                onValueChange={(newUnit) => {
-                  const previousUnit = measurementUnit;
-                  setMeasurementUnit(newUnit);
-                  setPreviousUnit(previousUnit);
-                }}
-                style={styles.unitPicker}>
-                <Picker.Item label="units" value="units" />
-                <Picker.Item label="mg" value="mg" />
-                <Picker.Item label="ml" value="ml" />
-                <Picker.Item label="g" value="g" />
-                <Picker.Item label="gm" value="gm" />
-                <Picker.Item label="mcg" value="mcg" />
-              </Picker>
-            )}
           </View>
           <ThemedText style={styles.info}>
             Please reload the page when altering fields to find a different Day Supply.

@@ -101,6 +101,8 @@ export default function TabTwoScreen() {
     const frequencyNum = parseFloat(frequencyNumber);
     const dropsPerMlNum = parseFloat(dropsPerMl);
     
+    let resultValue = 0;
+    
     // Adjust quantity based on package size if enabled
     let adjustedQuantity = quantityNum;
     if (usePackageSize && packageSizeValue) {
@@ -135,7 +137,6 @@ export default function TabTwoScreen() {
         return getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
       })();
 
-      let resultValue: number;
       if (concentrationEnabled && concentrationValue1 && concentrationValue2) {
         // Add console.log statements to debug the calculation
         console.log('Concentration Values:', {
@@ -255,8 +256,22 @@ export default function TabTwoScreen() {
         const dailySprayUsage = dosesPerDay * packageSizeNum;
         resultValue = totalSprays / dailySprayUsage;
       } else if (weightUnit === 'Eye Drops') {
+        console.log('Eye Drops Day Supply Initial Values:', {
+          quantity: adjustedQuantity,         // Should be 8ml
+          dropsPerMl: dropsPerMlNum,         // Should be 20 or 16
+          dosesPerDay,                        // Should be 1
+          packageSize: packageSizeNum,        // Should be 2.5ml
+          beyondUseDate: beyondUseDateValue   // Should be 42
+        });
+
         const totalDrops = adjustedQuantity * dropsPerMlNum;
         resultValue = totalDrops / dosesPerDay;
+
+        console.log('Eye Drops Day Supply Calculation:', {
+          totalDrops,                         // Should be 160 or 128
+          resultValue: Math.floor(resultValue), // Should be 126 or 120 after BUD adjustment
+          expectedDays: '126 or 120'          // (rounded down to nearest multiple of 42)
+        });
       } else {
         const dailyUsage = dosesPerDay * packageSizeNum;
         resultValue = adjustedQuantity / dailyUsage;

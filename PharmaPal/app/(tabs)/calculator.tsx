@@ -136,7 +136,24 @@ export default function TabTwoScreen() {
       })();
 
       let resultValue: number;
-      if (includeTitration && maxDose) {
+      if (concentrationEnabled && concentrationValue1 && concentrationValue2) {
+        // Convert everything to base units (mg and ml)
+        const concValue1 = parseFloat(concentrationValue1); // 25mg
+        const concValue2 = parseFloat(concentrationValue2); // 5ml
+        const doseValue = parseFloat(dosagePerUnit);       // 12.5mg
+        
+        // Calculate mg per ml in the concentration
+        const mgPerMl = concValue1 / concValue2;           // 25mg/5ml = 5mg/ml
+        
+        // Calculate ml needed per dose
+        const mlPerDose = doseValue / mgPerMl;            // 12.5mg / (5mg/ml) = 2.5ml per dose
+        
+        // Calculate total doses available
+        const totalDoses = quantityNum / mlPerDose;       // 120ml / 2.5ml = 48 total doses
+        
+        // Calculate days supply
+        resultValue = totalDoses / (dosesPerDay * packageSizeNum); // 48 doses / (3 doses per day * 1) = 16 days
+      } else if (includeTitration && maxDose) {
         const maxDoseNum = parseFloat(maxDose);
         let remainingQuantity = adjustedQuantity;
         let totalDays = 0;
@@ -552,6 +569,29 @@ export default function TabTwoScreen() {
                 </Picker>
               </View>
 
+              {measurementUnit !== 'units' && !['Oral Inhaler', 'Nasal Inhaler', 'Eye Drops', 'Topical'].includes(weightUnit) && (
+                <View style={styles.inputRow}>
+                  <TextInput
+                    style={[styles.input, styles.inputFlex]}
+                    value={dosagePerUnit}
+                    onChangeText={setDosagePerUnit}
+                    keyboardType="numeric"
+                    placeholder="Dosage"
+                    placeholderTextColor="#666"
+                  />
+                  <Picker
+                    selectedValue={dosageUnit}
+                    onValueChange={setDosageUnit}
+                    style={styles.unitPicker}>
+                    <Picker.Item label="mg" value="mg" />
+                    <Picker.Item label="ml" value="ml" />
+                    <Picker.Item label="g" value="g" />
+                    <Picker.Item label="gm" value="gm" />
+                    <Picker.Item label="mcg" value="mcg" />
+                  </Picker>
+                </View>
+              )}
+
               <View style={styles.inputRow}>
                 <TextInput
                   style={[styles.input, styles.inputFlex]}
@@ -654,7 +694,8 @@ export default function TabTwoScreen() {
                 </View>
               ) : (
                 <View style={styles.inputRow}>
-                  <TextInput
+                  {/* Remove this entire dosage input block since it's redundant */}
+                  {/* <TextInput
                     style={[styles.input, styles.inputFlex]}
                     value={dosagePerUnit}
                     onChangeText={setDosagePerUnit}
@@ -671,7 +712,7 @@ export default function TabTwoScreen() {
                     <Picker.Item label="g" value="g" />
                     <Picker.Item label="gm" value="gm" />
                     <Picker.Item label="mcg" value="mcg" />
-                  </Picker>
+                  </Picker> */}
                 </View>
               )}
 

@@ -137,23 +137,43 @@ export default function TabTwoScreen() {
 
       let resultValue: number;
       if (concentrationEnabled && concentrationValue1 && concentrationValue2) {
-        // Convert everything to base units (mg and ml)
-        const concValue1 = parseFloat(concentrationValue1); // 25mg
-        const concValue2 = parseFloat(concentrationValue2); // 5ml
-        const doseValue = parseFloat(dosagePerUnit);       // 12.5mg
-        
+        // Add console.log statements to debug the calculation
+        console.log('Concentration Values:', {
+          concValue1: parseFloat(concentrationValue1), // Should be 25mg
+          concValue2: parseFloat(concentrationValue2), // Should be 5ml
+          doseValue: parseFloat(dosagePerUnit),       // Should be 12.5mg
+          quantityNum,                                // Should be 120ml
+          dosesPerDay                                 // Should be 3 (24/8)
+        });
+
         // Calculate mg per ml in the concentration
-        const mgPerMl = concValue1 / concValue2;           // 25mg/5ml = 5mg/ml
+        const mgPerMl = parseFloat(concentrationValue1) / parseFloat(concentrationValue2); // Should be 5mg/ml
         
         // Calculate ml needed per dose
-        const mlPerDose = doseValue / mgPerMl;            // 12.5mg / (5mg/ml) = 2.5ml per dose
+        const mlPerDose = parseFloat(dosagePerUnit) / mgPerMl;  // Should be 2.5ml
         
         // Calculate total doses available
-        const totalDoses = quantityNum / mlPerDose;       // 120ml / 2.5ml = 48 total doses
+        const totalDoses = quantityNum / mlPerDose;             // Should be 48 doses
         
         // Calculate days supply
-        resultValue = totalDoses / (dosesPerDay * packageSizeNum); // 48 doses / (3 doses per day * 1) = 16 days
+        resultValue = totalDoses / (dosesPerDay * packageSizeNum); // Should be 16 days
+
+        console.log('Calculated Values:', {
+          mgPerMl,
+          mlPerDose,
+          totalDoses,
+          resultValue
+        });
       } else if (includeTitration && maxDose) {
+        console.log('Titration Initial Values:', {
+          quantity: adjustedQuantity,
+          startDose: parseFloat(titrationStages[0].startDose),  // Should be 1
+          increment: parseFloat(titrationStages[0].increment),   // Should be 1
+          frequency: parseFloat(titrationStages[0].frequency),   // Should be 14
+          maxDose: parseFloat(maxDose),                         // Should be 3
+          dosesPerDay                                           // Should be 1
+        });
+
         const maxDoseNum = parseFloat(maxDose);
         let remainingQuantity = adjustedQuantity;
         let totalDays = 0;
@@ -166,18 +186,36 @@ export default function TabTwoScreen() {
             parseFloat(titrationStages[0].frequency)  // Days until next increase
           );
 
+          console.log('Titration Step:', {
+            currentDose,
+            remainingQuantity,
+            daysAtCurrentDose,
+            totalDays
+          });
+
           totalDays += daysAtCurrentDose;
           remainingQuantity -= (daysAtCurrentDose * currentDose);
           currentDose = Math.min(currentDose + parseFloat(titrationStages[0].increment), maxDoseNum);
 
           // If we've reached max dose, calculate remaining days at max dose
           if (currentDose >= maxDoseNum && remainingQuantity > 0) {
-            totalDays += remainingQuantity / maxDoseNum;
+            const finalDays = remainingQuantity / maxDoseNum;
+            totalDays += finalDays;
+            console.log('Final Max Dose Step:', {
+              remainingQuantity,
+              maxDoseNum,
+              finalDays,
+              totalDays
+            });
             break;
           }
         }
 
         resultValue = totalDays;
+        console.log('Final Result:', {
+          resultValue,
+          expectedDays: 47
+        });
       } else if (weightUnit === 'Oral Inhaler') {
         // Parse inhaler-specific values
         const puffsNum = parseFloat(puffsPerPackage);
@@ -345,15 +383,18 @@ export default function TabTwoScreen() {
         
         setResult(`${finalQuantity.toFixed(1)} mL needed`);
       } else if (includeTitration) {
+        console.log('Quantity Calculation Initial Values:', {
+          targetDays: daysNum,
+          startDose: parseFloat(titrationStages[0].startDose),  // Should be 1
+          increment: parseFloat(titrationStages[0].increment),   // Should be 1
+          frequency: parseFloat(titrationStages[0].frequency),   // Should be 14
+          maxDose: parseFloat(maxDose)                          // Should be 3
+        });
+
         const maxDoseNum = parseFloat(maxDose);
         let currentDose = parseFloat(titrationStages[0].startDose);
         let totalUnitsNeeded = 0;
         let remainingDays = daysNum * timeConversions[outputUnit];
-
-        if (isNaN(maxDoseNum)) {
-          setResult('Please enter a valid maximum dose');
-          return;
-        }
 
         // Calculate units needed during titration
         for (const stage of titrationStages) {
@@ -361,10 +402,12 @@ export default function TabTwoScreen() {
           const increment = parseFloat(stage.increment);
           const freqDays = parseFloat(stage.frequency);
           
-          if (isNaN(startDose) || isNaN(increment) || isNaN(freqDays)) {
-            setResult('Please enter valid titration values');
-            return;
-          }
+          console.log('Quantity Stage Calculation:', {
+            startDose,
+            increment,
+            freqDays,
+            remainingDays
+          });
 
           let daysInThisStage = 0;
           let stageUnits = 0;
@@ -374,6 +417,12 @@ export default function TabTwoScreen() {
             stageUnits += currentStepDose * freqDays;
             currentStepDose = Math.min(currentStepDose + increment, maxDoseNum);
             daysInThisStage += freqDays;
+
+            console.log('Quantity Step:', {
+              currentStepDose,
+              stageUnits,
+              daysInThisStage
+            });
 
             if (daysInThisStage > remainingDays) {
               // Adjust for partial period
@@ -392,13 +441,27 @@ export default function TabTwoScreen() {
 
         // If there are remaining days, calculate units at max dose
         if (remainingDays > 0) {
-          totalUnitsNeeded += maxDoseNum * remainingDays;
+          const finalUnits = maxDoseNum * remainingDays;
+          totalUnitsNeeded += finalUnits;
+          console.log('Final Units at Max Dose:', {
+            remainingDays,
+            maxDoseNum,
+            finalUnits,
+            totalUnitsNeeded
+          });
         }
 
         // Adjust for package size
         const totalPackages = Math.ceil(totalUnitsNeeded / packageSizeNum);
         const finalQuantity = totalPackages * packageSizeNum;
         
+        console.log('Final Quantity Result:', {
+          totalUnitsNeeded,
+          packageSizeNum,
+          finalQuantity,
+          expectedQuantity: 60
+        });
+
         setResult(`${finalQuantity} units needed`);
 
       } else {

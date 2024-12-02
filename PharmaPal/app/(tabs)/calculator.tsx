@@ -311,17 +311,12 @@ export default function TabTwoScreen() {
         return;
       }
 
-      if (weightUnit === 'Oral Inhaler') {
-        // Parse inhaler-specific values
-        const puffsNum = parseFloat(puffsPerPackage);
-        const gramsNum = parseFloat(packageGrams);
-        
-        if (isNaN(puffsNum) || isNaN(gramsNum)) {
-          setResult('Please enter valid inhaler values');
-          return;
-        }
+      if (weightUnit === 'Eye Drops') {
+        // Parse eye drops-specific values
+        const dropsPerMlNum = parseFloat(dropsPerMl);
+        const packageSizeNum = parseFloat(packageSizeValue || '2.5');
 
-        // Calculate daily puff usage
+        // Calculate doses per day
         const dosesPerDay = (() => {
           if (frequencyPattern === 'everyOther') {
             return 0.5;
@@ -338,153 +333,34 @@ export default function TabTwoScreen() {
           return getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
         })();
 
-        const dailyPuffUsage = dosesPerDay * packageSizeNum;
-        
-        // Calculate total puffs needed
-        const totalPuffsNeeded = dailyPuffUsage * daysNum;
-        
-        // Convert puffs to grams using the ratio
-        const puffsPerGram = puffsNum / gramsNum;
-        const totalGramsNeeded = totalPuffsNeeded / puffsPerGram;
-        
-        // Round up to the nearest package size
-        const packagesNeeded = Math.ceil(totalGramsNeeded / gramsNum);
-        const finalQuantity = packagesNeeded * gramsNum;
-        
-        setResult(`${finalQuantity.toFixed(1)} grams needed`);
-      } else if (weightUnit === 'Nasal Inhaler') {
-        const daysNum = parseFloat(daySupply);
-        const frequencyNum = parseFloat(frequencyNumber);
-        const packageSizeNum = parseFloat(packageSize);
-        
-        // Parse nasal inhaler-specific values
-        const spraysNum = parseFloat(spraysPerPackage);
-        const mlsNum = parseFloat(nasalPackageMls);
-        
-        if (isNaN(spraysNum) || isNaN(mlsNum)) {
-          setResult('Please enter valid inhaler values');
-          return;
-        }
-
-        // Calculate daily spray usage
-        const dosesPerDay = (() => {
-          if (frequencyPattern === 'everyOther') {
-            return 0.5;
-          }
-          if (frequencyUnit === 'hour') {
-            return 24 / frequencyNum;
-          }
-          if (frequencyUnit === 'day') {
-            return frequencyNum;
-          }
-          if (frequencyUnit === 'week') {
-            return frequencyNum / 7;
-          }
-          return getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
-        })();
-
-        const dailySprayUsage = dosesPerDay * packageSizeNum;
-        
-        // Calculate total sprays needed
-        const totalSpraysNeeded = dailySprayUsage * daysNum;
-        
-        // Convert sprays to mLs using the ratio
-        const spraysPerMl = spraysNum / mlsNum;
-        const totalMlsNeeded = totalSpraysNeeded / spraysPerMl;
-        
-        // Round up to the nearest package size
-        const packagesNeeded = Math.ceil(totalMlsNeeded / mlsNum);
-        const finalQuantity = packagesNeeded * mlsNum;
-        
-        setResult(`${finalQuantity.toFixed(1)} mL needed`);
-      } else if (includeTitration) {
-        console.log('Quantity Calculation Initial Values:', {
+        console.log('Eye Drops Quantity Initial Values:', {
           targetDays: daysNum,
-          startDose: parseFloat(titrationStages[0].startDose),  // Should be 1
-          increment: parseFloat(titrationStages[0].increment),   // Should be 1
-          frequency: parseFloat(titrationStages[0].frequency),   // Should be 14
-          maxDose: parseFloat(maxDose)                          // Should be 3
+          dropsPerMl: dropsPerMlNum,
+          dosesPerDay,
+          packageSize: packageSizeNum
         });
 
-        const maxDoseNum = parseFloat(maxDose);
-        let currentDose = parseFloat(titrationStages[0].startDose);
-        let totalUnitsNeeded = 0;
-        let remainingDays = daysNum * timeConversions[outputUnit];
-
-        // Calculate units needed during titration
-        for (const stage of titrationStages) {
-          const startDose = currentDose;
-          const increment = parseFloat(stage.increment);
-          const freqDays = parseFloat(stage.frequency);
-          
-          console.log('Quantity Stage Calculation:', {
-            startDose,
-            increment,
-            freqDays,
-            remainingDays
-          });
-
-          let daysInThisStage = 0;
-          let stageUnits = 0;
-          let currentStepDose = startDose;
-
-          while (daysInThisStage < remainingDays && currentStepDose < maxDoseNum) {
-            stageUnits += currentStepDose * freqDays;
-            currentStepDose = Math.min(currentStepDose + increment, maxDoseNum);
-            daysInThisStage += freqDays;
-
-            console.log('Quantity Step:', {
-              currentStepDose,
-              stageUnits,
-              daysInThisStage
-            });
-
-            if (daysInThisStage > remainingDays) {
-              // Adjust for partial period
-              const excess = daysInThisStage - remainingDays;
-              stageUnits -= (currentStepDose * excess);
-              daysInThisStage = remainingDays;
-            }
-          }
-
-          totalUnitsNeeded += stageUnits;
-          remainingDays -= daysInThisStage;
-          currentDose = currentStepDose;
-
-          if (remainingDays <= 0) break;
-        }
-
-        // If there are remaining days, calculate units at max dose
-        if (remainingDays > 0) {
-          const finalUnits = maxDoseNum * remainingDays;
-          totalUnitsNeeded += finalUnits;
-          console.log('Final Units at Max Dose:', {
-            remainingDays,
-            maxDoseNum,
-            finalUnits,
-            totalUnitsNeeded
-          });
-        }
-
-        // Adjust for package size
-        const totalPackages = Math.ceil(totalUnitsNeeded / packageSizeNum);
-        const finalQuantity = totalPackages * packageSizeNum;
+        // Calculate total drops needed
+        const totalDropsNeeded = daysNum * dosesPerDay;
         
-        console.log('Final Quantity Result:', {
-          totalUnitsNeeded,
-          packageSizeNum,
+        // Convert drops to mL
+        const mlNeeded = totalDropsNeeded / dropsPerMlNum;
+        
+        // Calculate number of packages needed (round up)
+        const packagesNeeded = Math.ceil(mlNeeded / packageSizeNum);
+        
+        // Final quantity is number of packages times package size
+        const finalQuantity = packagesNeeded * packageSizeNum;
+
+        console.log('Eye Drops Quantity Calculation:', {
+          totalDropsNeeded,
+          mlNeeded,
+          packagesNeeded,
           finalQuantity,
-          expectedQuantity: 60
+          expectedQuantity: 2.5
         });
 
-        setResult(`${finalQuantity} units needed`);
-
-      } else {
-        // Regular quantity calculation without titration
-        const actualDays = daysNum * timeConversions[outputUnit];
-        const dailyRate = getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
-        const quantityNeeded = (actualDays * dailyRate) * packageSizeNum;
-        setResult(`${Math.ceil(quantityNeeded)} units needed`);
+        setResult(`${finalQuantity.toFixed(1)} mL needed`);
       }
     }
   };

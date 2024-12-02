@@ -333,15 +333,18 @@ export default function TabTwoScreen() {
           return getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
         })();
 
+        // Convert target days to actual days based on time unit
+        const actualDays = daysNum * timeConversions[outputUnit];
+
         console.log('Eye Drops Quantity Initial Values:', {
-          targetDays: daysNum,
+          targetDays: actualDays,
           dropsPerMl: dropsPerMlNum,
           dosesPerDay,
           packageSize: packageSizeNum
         });
 
         // Calculate total drops needed
-        const totalDropsNeeded = daysNum * dosesPerDay;
+        const totalDropsNeeded = actualDays * dosesPerDay;
         
         // Convert drops to mL
         const mlNeeded = totalDropsNeeded / dropsPerMlNum;
@@ -360,7 +363,7 @@ export default function TabTwoScreen() {
           expectedQuantity: 2.5
         });
 
-        setResult(`${finalQuantity.toFixed(1)} mL needed`);
+        setResult(`${finalQuantity} mL needed`);
       }
     }
   };
@@ -899,7 +902,7 @@ export default function TabTwoScreen() {
           <View style={[styles.inputRow, styles.resultContainer]}>
             <ThemedText style={styles.result}>
               {result ? (() => {
-                if (calculationType === 'daySupply') {
+                if (calculationType === 'daySupply' || weightUnit === 'Eye Drops') {
                   return result;
                 }
                 const numericResult = parseFloat(result);
@@ -910,7 +913,7 @@ export default function TabTwoScreen() {
                 return convertedValue.toFixed(2);
               })() : ''}
             </ThemedText>
-            {result && calculationType === 'quantity' && (
+            {result && calculationType === 'quantity' && weightUnit !== 'Eye Drops' && (
               <Picker
                 selectedValue={measurementUnit}
                 onValueChange={(newUnit) => {

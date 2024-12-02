@@ -661,18 +661,6 @@ export default function TabTwoScreen() {
                 </View>
               )}
 
-              <View style={styles.inputRow}>
-                <TextInput
-                  style={[styles.input, styles.inputFlex]}
-                  value={packageSize}
-                  onChangeText={setPackageSize}
-                  keyboardType="numeric"
-                  placeholder="Uses per frequency"
-                  placeholderTextColor="#666"
-                />
-                <ThemedText style={styles.unitLabel}>uses per frequency</ThemedText>
-              </View>
-
               {weightUnit === 'Eye Drops' && (
                 <View style={styles.inputRow}>
                   <TextInput
@@ -958,6 +946,18 @@ export default function TabTwoScreen() {
 
           <View style={styles.frequencyContainer}>
             <View style={styles.inputRow}>
+              <View style={styles.usesPerFrequencyContainer}>
+                <TextInput
+                  style={[styles.input, styles.frequencyInput]}
+                  value={packageSize}
+                  onChangeText={setPackageSize}
+                  keyboardType="numeric"
+                  placeholder="Uses"
+                  placeholderTextColor="#666"
+                />
+                <ThemedText style={styles.unitLabel}>uses per</ThemedText>
+              </View>
+
               <Picker
                 selectedValue={frequencyPattern}
                 onValueChange={setFrequencyPattern}
@@ -1312,5 +1312,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#2c3e50',
     fontWeight: '500',
+  },
+  usesPerFrequencyContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 10,
   },
 });

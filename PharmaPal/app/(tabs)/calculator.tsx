@@ -354,6 +354,7 @@ export default function TabTwoScreen() {
         // Convert target days to actual days based on time unit
         const actualDays = daysNum * timeConversions[outputUnit];
 
+        // Eye Drops Quantity Testing
         console.log('Eye Drops Quantity Initial Values:', {
           targetDays: actualDays,
           dropsPerMl: dropsPerMlNum,
@@ -373,6 +374,7 @@ export default function TabTwoScreen() {
         // Final quantity is number of packages times package size
         const finalQuantity = packagesNeeded * packageSizeNum;
 
+        // Eye Drops Quantity Testing
         console.log('Eye Drops Quantity Calculation:', {
           totalDropsNeeded,
           mlNeeded,
@@ -523,12 +525,25 @@ export default function TabTwoScreen() {
         // Calculate total puffs needed
         const totalPuffsNeeded = actualDays * dosesPerDay;
         
-        // Calculate grams needed based on puffs per gram ratio
+        // Calculate puffs per gram ratio
         const puffsPerGram = puffsNum / gramsNum;
+        
+        // Calculate grams needed
         const gramsNeeded = totalPuffsNeeded / puffsPerGram;
         
-        // Round up to nearest whole gram
-        const finalGrams = Math.ceil(gramsNeeded);
+        // Round up to the nearest package size
+        const packagesNeeded = Math.ceil(gramsNeeded / gramsNum);
+        const finalGrams = packagesNeeded * gramsNum;
+
+        console.log('Inhaler Quantity Calculation:', {
+          actualDays,
+          dosesPerDay,
+          totalPuffsNeeded,
+          puffsPerGram,
+          gramsNeeded,
+          packagesNeeded,
+          finalGrams
+        });
 
         setResult(`${finalGrams} grams needed`);
         return;

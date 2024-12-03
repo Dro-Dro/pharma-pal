@@ -12,9 +12,8 @@ import { ThemedView } from '@/components/ThemedView';
 type TimeUnit = 'minute' | 'hour' | 'day' | 'week';
 
 type TitrationStage = {
-  startDose: string;
-  increment: string;
-  frequency: string;
+  quantity: string;
+  duration: string;
 };
 
 type MeasurementUnit = 'mg' | 'ml' | 'g' | 'gm' | 'mcg' | 'units';
@@ -58,9 +57,8 @@ export default function TabTwoScreen() {
   const [result, setResult] = useState('');
   const [includeTitration, setIncludeTitration] = useState(false);
   const [titrationStages, setTitrationStages] = useState<TitrationStage[]>([{
-    startDose: '',
-    increment: '',
-    frequency: '7'
+    quantity: '',
+    duration: '7'
   }]);
   const [maxDose, setMaxDose] = useState<string>('');
   const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>('units');
@@ -172,48 +170,57 @@ export default function TabTwoScreen() {
       } else if (includeTitration && maxDose) {
         console.log('Titration Initial Values:', {
           quantity: adjustedQuantity,
-          startDose: parseFloat(titrationStages[0].startDose),  // Should be 1
-          increment: parseFloat(titrationStages[0].increment),   // Should be 1
-          frequency: parseFloat(titrationStages[0].frequency),   // Should be 14
-          maxDose: parseFloat(maxDose),                         // Should be 3
-          dosesPerDay                                           // Should be 1
+          titrationStages,
+          maxDose: parseFloat(maxDose),
+          dosesPerDay
         });
 
         const maxDoseNum = parseFloat(maxDose);
         let remainingQuantity = adjustedQuantity;
         let totalDays = 0;
-        let currentDose = parseFloat(titrationStages[0].startDose);
 
-        while (remainingQuantity > 0 && currentDose <= maxDoseNum) {
-          // Calculate how many days we can cover at current dose
-          const daysAtCurrentDose = Math.min(
-            remainingQuantity / currentDose,  // Days possible with remaining quantity
-            parseFloat(titrationStages[0].frequency)  // Days until next increase
-          );
+        // Process each titration stage
+        for (let i = 0; i < titrationStages.length && remainingQuantity > 0; i++) {
+          const currentStage = titrationStages[i];
+          const stageDose = parseFloat(currentStage.quantity);
+          const stageDuration = parseFloat(currentStage.duration);
 
-          console.log('Titration Step:', {
-            currentDose,
+          if (isNaN(stageDose) || isNaN(stageDuration)) continue;
+
+          // Calculate quantity needed for this stage
+          const quantityForStage = stageDose * stageDuration;
+          
+          // If we have enough quantity for the full stage
+          if (remainingQuantity >= quantityForStage) {
+            totalDays += stageDuration;
+            remainingQuantity -= quantityForStage;
+          } else {
+            // If we don't have enough for the full stage
+            totalDays += remainingQuantity / stageDose;
+            remainingQuantity = 0;
+          }
+
+          console.log('Titration Stage Calculation:', {
+            stage: i + 1,
+            stageDose,
+            stageDuration,
+            quantityForStage,
             remainingQuantity,
-            daysAtCurrentDose,
             totalDays
           });
+        }
 
-          totalDays += daysAtCurrentDose;
-          remainingQuantity -= (daysAtCurrentDose * currentDose);
-          currentDose = Math.min(currentDose + parseFloat(titrationStages[0].increment), maxDoseNum);
-
-          // If we've reached max dose, calculate remaining days at max dose
-          if (currentDose >= maxDoseNum && remainingQuantity > 0) {
-            const finalDays = remainingQuantity / maxDoseNum;
-            totalDays += finalDays;
-            console.log('Final Max Dose Step:', {
-              remainingQuantity,
-              maxDoseNum,
-              finalDays,
-              totalDays
-            });
-            break;
-          }
+        // If there's still quantity left, use it at max dose
+        if (remainingQuantity > 0) {
+          const additionalDays = remainingQuantity / maxDoseNum;
+          totalDays += additionalDays;
+          
+          console.log('Final Max Dose Calculation:', {
+            remainingQuantity,
+            maxDoseNum,
+            additionalDays,
+            totalDays
+          });
         }
 
         resultValue = totalDays;
@@ -387,51 +394,54 @@ export default function TabTwoScreen() {
       } else if (includeTitration && maxDose) {
         console.log('Quantity Calculation Initial Values:', {
           targetDays: daysNum,
-          startDose: parseFloat(titrationStages[0].startDose),
-          increment: parseFloat(titrationStages[0].increment),
-          frequency: parseFloat(titrationStages[0].frequency),
+          titrationStages,
           maxDose: parseFloat(maxDose)
         });
 
         const maxDoseNum = parseFloat(maxDose);
-        let currentDose = parseFloat(titrationStages[0].startDose);
         let totalQuantity = 0;
         let remainingDays = daysNum;
 
-        // Calculate quantity needed for each titration stage
-        while (remainingDays > 0 && currentDose <= maxDoseNum) {
-          const daysInStage = Math.min(
-            parseFloat(titrationStages[0].frequency),
-            remainingDays
-          );
+        // Process each titration stage
+        for (let i = 0; i < titrationStages.length && remainingDays > 0; i++) {
+          const currentStage = titrationStages[i];
+          const stageDose = parseFloat(currentStage.quantity);
+          const stageDuration = parseFloat(currentStage.duration);
 
-          totalQuantity += currentDose * daysInStage;
+          if (isNaN(stageDose) || isNaN(stageDuration)) continue;
+
+          // Calculate days for this stage
+          const daysInStage = Math.min(stageDuration, remainingDays);
+          
+          // Add quantity for this stage
+          totalQuantity += stageDose * daysInStage;
           remainingDays -= daysInStage;
-          currentDose = Math.min(
-            currentDose + parseFloat(titrationStages[0].increment),
-            maxDoseNum
-          );
 
-          console.log('Quantity Step:', {
-            currentDose,
+          console.log('Quantity Stage Calculation:', {
+            stage: i + 1,
+            stageDose,
             daysInStage,
+            quantityAdded: stageDose * daysInStage,
             remainingDays,
             totalQuantity
           });
+        }
 
-          // If we've reached max dose, calculate remaining days
-          if (currentDose >= maxDoseNum && remainingDays > 0) {
-            totalQuantity += maxDoseNum * remainingDays;
-            console.log('Final Max Dose Step:', {
-              remainingDays,
-              maxDoseNum,
-              totalQuantity
-            });
-            break;
-          }
+        // If there are remaining days, calculate at max dose
+        if (remainingDays > 0) {
+          const finalQuantity = maxDoseNum * remainingDays;
+          totalQuantity += finalQuantity;
+
+          console.log('Final Max Dose Quantity:', {
+            remainingDays,
+            maxDoseNum,
+            finalQuantity,
+            totalQuantity
+          });
         }
 
         setResult(`${totalQuantity} units needed`);
+        return;
       } else if (weightUnit === 'Topical') {
         // Calculate doses per day
         const dosesPerDay = (() => {
@@ -954,46 +964,30 @@ export default function TabTwoScreen() {
                       <View style={styles.inputRow}>
                         <TextInput
                           style={[styles.input, styles.inputFlex]}
-                          value={stage.startDose}
+                          value={stage.quantity}
                           onChangeText={(value) => {
                             const newStages = [...titrationStages];
-                            newStages[index].startDose = value;
+                            newStages[index].quantity = value;
                             setTitrationStages(newStages);
                           }}
                           keyboardType="numeric"
-                          placeholder="Starting dose"
+                          placeholder="Quantity per day"
                           placeholderTextColor="#666"
                         />
-                        <ThemedText style={styles.unitLabel}>units</ThemedText>
+                        <ThemedText style={styles.unitLabel}>units/day</ThemedText>
                       </View>
 
                       <View style={styles.inputRow}>
                         <TextInput
                           style={[styles.input, styles.inputFlex]}
-                          value={stage.increment}
+                          value={stage.duration}
                           onChangeText={(value) => {
                             const newStages = [...titrationStages];
-                            newStages[index].increment = value;
+                            newStages[index].duration = value;
                             setTitrationStages(newStages);
                           }}
                           keyboardType="numeric"
-                          placeholder="Increase by"
-                          placeholderTextColor="#666"
-                        />
-                        <ThemedText style={styles.unitLabel}>units</ThemedText>
-                      </View>
-
-                      <View style={styles.inputRow}>
-                        <TextInput
-                          style={[styles.input, styles.inputFlex]}
-                          value={stage.frequency}
-                          onChangeText={(value) => {
-                            const newStages = [...titrationStages];
-                            newStages[index].frequency = value;
-                            setTitrationStages(newStages);
-                          }}
-                          keyboardType="numeric"
-                          placeholder="Days between increases"
+                          placeholder="Duration"
                           placeholderTextColor="#666"
                         />
                         <ThemedText style={styles.unitLabel}>days</ThemedText>
@@ -1016,9 +1010,8 @@ export default function TabTwoScreen() {
                     style={styles.addStageButton}
                     onPress={() => {
                       setTitrationStages([...titrationStages, {
-                        startDose: '',
-                        increment: '',
-                        frequency: '7'
+                        quantity: '',
+                        duration: '7'
                       }]);
                     }}>
                     <ThemedText>Add Stage</ThemedText>

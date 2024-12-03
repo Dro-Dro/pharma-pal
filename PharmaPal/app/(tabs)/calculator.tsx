@@ -535,7 +535,7 @@ export default function TabTwoScreen() {
         const packagesNeeded = Math.ceil(gramsNeeded / gramsNum);
         const finalGrams = packagesNeeded * gramsNum;
 
-        console.log('Inhaler Quantity Calculation:', {
+        console.log('Oral Inhaler Quantity Calculation:', {
           actualDays,
           dosesPerDay,
           totalPuffsNeeded,
@@ -545,7 +545,62 @@ export default function TabTwoScreen() {
           finalGrams
         });
 
-        setResult(`${finalGrams} grams needed`);
+        setResult(`${finalGrams} grams (adjusted to package size) | ${gramsNeeded} grams (unadjusted to package size)`);
+        return;
+      } else if (weightUnit === 'Nasal Inhaler') {
+        // Parse inhaler-specific values
+        const spraysNum = parseFloat(spraysPerPackage);
+        const mlsNum = parseFloat(nasalPackageMls);
+        
+        if (isNaN(spraysNum) || isNaN(mlsNum)) {
+          setResult('Please enter valid inhaler values');
+          return;
+        }
+
+        // Calculate doses per day
+        const dosesPerDay = (() => {
+          if (frequencyPattern === 'everyOther') {
+            return 0.5 * parseFloat(packageSize);
+          }
+          if (frequencyUnit === 'hour') {
+            return (24 / parseFloat(frequencyNumber)) * parseFloat(packageSize);
+          }
+          if (frequencyUnit === 'day') {
+            return parseFloat(frequencyNumber) * parseFloat(packageSize);
+          }
+          if (frequencyUnit === 'week') {
+            return (parseFloat(frequencyNumber) / 7) * parseFloat(packageSize);
+          }
+          return getFrequencyPerDay(parseFloat(frequencyNumber), frequencyPattern, frequencyUnit) * parseFloat(packageSize);
+        })();
+
+        // Convert target days to actual days based on time unit
+        const actualDays = parseFloat(daySupply) * timeConversions[outputUnit];
+
+        // Calculate total puffs needed
+        const totalSpraysNeeded = actualDays * dosesPerDay;
+        
+        // Calculate sprays per ml ratio
+        const spraysPerMl = spraysNum / mlsNum;
+        
+        // Calculate ml needed
+        const mlNeeded = totalSpraysNeeded / spraysPerMl;
+        
+        // Round up to the nearest package size
+        const packagesNeeded = Math.ceil(mlNeeded / mlsNum);
+        const finalMls = packagesNeeded * mlsNum;
+
+        console.log('Nasal Inhaler Quantity Calculation:', {
+          actualDays,
+          dosesPerDay,
+          totalSpraysNeeded,
+          spraysPerMl,
+          mlNeeded,
+          packagesNeeded,
+          finalMls
+        });
+
+        setResult(`${finalMls} ml (adjusted to package size) | ${mlNeeded} ml (unadjusted to package size)`);
         return;
       }
     }

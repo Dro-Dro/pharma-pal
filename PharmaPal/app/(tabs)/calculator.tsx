@@ -717,18 +717,6 @@ export default function TabTwoScreen() {
                 </View>
               )}
 
-              <View style={styles.inputRow}>
-                <TextInput
-                  style={[styles.input, styles.inputFlex]}
-                  value={packageSize}
-                  onChangeText={setPackageSize}
-                  keyboardType="numeric"
-                  placeholder="Uses per frequency"
-                  placeholderTextColor="#666"
-                />
-                <ThemedText style={styles.unitLabel}>uses per frequency</ThemedText>
-              </View>
-
               {weightUnit === 'Eye Drops' && (
                 <View style={styles.inputRow}>
                   <TextInput
@@ -817,29 +805,7 @@ export default function TabTwoScreen() {
                     Total: {calculateTotalGrams()}g per application
                   </ThemedText>
                 </View>
-              ) : (
-                <View style={styles.inputRow}>
-                  {/* Remove this entire dosage input block since it's redundant */}
-                  {/* <TextInput
-                    style={[styles.input, styles.inputFlex]}
-                    value={dosagePerUnit}
-                    onChangeText={setDosagePerUnit}
-                    keyboardType="numeric"
-                    placeholder="Dosage"
-                    placeholderTextColor="#666"
-                  />
-                  <Picker
-                    selectedValue={dosageUnit}
-                    onValueChange={setDosageUnit}
-                    style={styles.unitPicker}>
-                    <Picker.Item label="mg" value="mg" />
-                    <Picker.Item label="ml" value="ml" />
-                    <Picker.Item label="g" value="g" />
-                    <Picker.Item label="gm" value="gm" />
-                    <Picker.Item label="mcg" value="mcg" />
-                  </Picker> */}
-                </View>
-              )}
+              ) : null}
 
               <View style={styles.titrationToggle}>
                 <TouchableOpacity 

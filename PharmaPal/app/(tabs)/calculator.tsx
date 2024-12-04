@@ -1154,7 +1154,7 @@ export default function TabTwoScreen() {
           </View>
 
           {calculationType === 'daySupply' && (
-            <View style={styles.inputRow}>
+            <View style={[styles.inputRow, styles.showResultRow]}>
               <ThemedText>Show result in: </ThemedText>
               <Picker
                 selectedValue={outputUnit}
@@ -1201,6 +1201,7 @@ const styles = StyleSheet.create({
   calculatorContainer: {
     padding: 20,
     marginBottom: 20,
+    alignItems: 'center',
   },
   pickerContainer: {
     padding: 20,
@@ -1216,6 +1217,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: '#000',
     backgroundColor: '#fff',
+    minWidth: 80,
+    flexShrink: 1,
+    flexGrow: 0,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -1226,10 +1230,12 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#91e655',
-    padding: 10,
-    borderRadius: 8,
-    minWidth: '45%',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignSelf: 'center',
     alignItems: 'center',
+    marginTop: 10,
   },
   result: {
     marginTop: 20,
@@ -1239,17 +1245,19 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    justifyContent: 'center',
+    marginBottom: 6,
     gap: 10,
   },
   inputFlex: {
-    flex: 1,
+    minWidth: 120,
+    flexGrow: 0,
+    flexShrink: 1,
   },
   picker: {
-    flex: 1,
-    height: 40,
+    height: 36,
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: 6,
   },
   medTypePicker: {
     flex: 1,
@@ -1263,6 +1271,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     color: '#777',
+    width: '100%',
   },
   titleHeader: {
     marginBottom: 20,
@@ -1278,13 +1287,15 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   toggleButton: {
-    padding: 10,
-    borderRadius: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: '#ccc',
-    width: '45%',
+    alignSelf: 'center',
+    minWidth: 120,
     alignItems: 'center',
-    marginVertical: 5,
+    marginVertical: 4,
   },
   toggleButtonActive: {
     backgroundColor: '#007AFF',
@@ -1293,11 +1304,14 @@ const styles = StyleSheet.create({
   frequencyContainer: {
     width: '100%',
     marginBottom: 15,
+    alignItems: 'center',
   },
   frequencyInput: {
-    width: 50,
+    width: 60,
+    minWidth: 60,
     textAlign: 'center',
     marginHorizontal: 5,
+    flexGrow: 0,
   },
   patternPicker: {
     flex: 1.2,
@@ -1320,34 +1334,43 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   titrationInputs: {
-    padding: 20,
-    marginBottom: 20,
+    padding: 6,
+    marginBottom: 12,
     alignItems: 'center',
+    width: 'auto',
   },
   titrationStage: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 15,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    padding: 6,
+    marginBottom: 10,
+    alignItems: 'center',
+    width: 'auto',
+    alignSelf: 'center',
   },
   stageTitle: {
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 6,
+    fontSize: 14,
   },
   addStageButton: {
     backgroundColor: '#91e655',
-    padding: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 10,
+    alignSelf: 'center',
   },
   removeStageButton: {
     backgroundColor: '#ff4444',
-    padding: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 10,
+    alignSelf: 'center',
   },
   removeStageText: {
     color: 'white',
@@ -1355,10 +1378,11 @@ const styles = StyleSheet.create({
   resultContainer: {
     justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
   },
   topicalContainer: {
-    width: '100%',
-    padding: 15,
+    width: '90%',
+    padding: 10,
     backgroundColor: '#f8f9fa',
     borderRadius: 12,
     marginVertical: 15,
@@ -1372,29 +1396,31 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   topicalTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginBottom: 10,
     textAlign: 'center',
     color: '#2c3e50',
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
   topicalButtonsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    justifyContent: 'space-between',
-    padding: 5,
+    gap: 6,
+    justifyContent: 'center',
+    padding: 4,
   },
   topicalButton: {
-    width: '48%',
-    padding: 15,
-    borderRadius: 10,
-    borderWidth: 2,
+    width: 'auto',
+    minWidth: '30%',
+    padding: 6,
+    borderRadius: 6,
+    borderWidth: 1,
     borderColor: '#e0e0e0',
-    marginBottom: 10,
+    marginBottom: 6,
+    marginHorizontal: 3,
     backgroundColor: '#ffffff',
     shadowColor: '#000',
     shadowOffset: {
@@ -1419,9 +1445,9 @@ const styles = StyleSheet.create({
   },
   topicalButtonText: {
     textAlign: 'center',
-    fontSize: 14,
+    fontSize: 12,
     color: '#2c3e50',
-    lineHeight: 20,
+    lineHeight: 16,
     fontWeight: '500',
   },
   topicalButtonTextSelected: {
@@ -1429,13 +1455,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   topicalTotal: {
-    marginTop: 15,
-    fontSize: 18,
+    marginTop: 12,
+    fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
-    padding: 15,
+    padding: 12,
     backgroundColor: '#e8f5e9',
-    borderRadius: 10,
+    borderRadius: 8,
     color: '#2e7d32',
     borderWidth: 2,
     borderColor: '#91e655',
@@ -1450,11 +1476,11 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   inhalerContainer: {
-    width: '100%',
-    padding: 15,
+    width: 'auto',
+    padding: 10,
     backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    marginVertical: 15,
+    borderRadius: 8,
+    marginVertical: 10,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -1463,21 +1489,29 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    alignSelf: 'center',
   },
   inhalerInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 8,
   },
   inhalerText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#2c3e50',
     fontWeight: '500',
   },
   usesPerFrequencyContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 10,
+  },
+  showResultRow: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
   },
 });

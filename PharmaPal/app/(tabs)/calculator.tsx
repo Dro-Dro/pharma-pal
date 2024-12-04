@@ -436,28 +436,19 @@ export default function TabTwoScreen() {
         // Convert drops to mL
         const mlNeeded = totalDropsNeeded / dropsPerMlNum;
         
-        // Calculate number of packages needed (round up)
-        const packagesNeeded = Math.ceil(mlNeeded / packageSizeNum);
-        
-        // Final quantity is number of packages times package size
-        const finalQuantity = packagesNeeded * packageSizeNum;
-
-        // Eye Drops Quantity Testing
-        console.log('Eye Drops Quantity Calculation:', {
-          totalDropsNeeded,
-          mlNeeded,
-          packagesNeeded,
-          finalQuantity,
-          expectedQuantity: 2.5
-        });
-
-        // Add package count if package size is enabled
-        let resultString = `${finalQuantity} mL needed  | ${mlNeeded} mL (unadjusted to package size)`;
+        let finalQuantity = mlNeeded;
+        let resultString = `${mlNeeded.toFixed(2)} mL needed`;
+        // Round down to nearest package size, unless it would be zero
         if (usePackageSize && packageSizeValue) {
           const packageSizeNum = parseFloat(packageSizeValue);
           if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
-            const packagesUsed = Math.ceil(finalQuantity / packageSizeNum);
-            resultString += `\nPackages used: ${packagesUsed}`;
+            finalQuantity = Math.floor(mlNeeded / packageSizeNum) * packageSizeNum;
+            // If rounding down would result in zero, round up instead
+            if (finalQuantity === 0 && mlNeeded > 0) {
+              finalQuantity = packageSizeNum;
+            }
+            const packagesUsed = finalQuantity / packageSizeNum;
+            resultString = `${finalQuantity} mL needed (adjusted to package size) | ${mlNeeded.toFixed(2)} mL (unadjusted)\nPackages used: ${packagesUsed}`;
           }
         }
         setResult(resultString);
@@ -557,28 +548,19 @@ export default function TabTwoScreen() {
         // Calculate total grams needed
         const totalGramsNeeded = totalGramsPerApplication * dosesPerDay * daysNum;
         
-        // Calculate number of packages needed (round down)
-        const packagesNeeded = Math.floor(totalGramsNeeded / packageSizeNum);
-        
-        // Final quantity is number of packages times package size
-        const finalQuantity = packagesNeeded * packageSizeNum;
-
-        console.log('Final Calculations:', {
-          totalGramsPerApplication,
-          dosesPerDay,
-          daysNum,
-          totalGramsNeeded,
-          packagesNeeded,
-          finalQuantity
-        });
-
-        // Add package count if package size is enabled
-        let resultString = `${finalQuantity} grams (adjusted to package size)  | ${totalGramsNeeded} grams (unadjusted to package size)`;
+        let finalQuantity = totalGramsNeeded;
+        let resultString = `${totalGramsNeeded.toFixed(2)} grams needed`;
+        // Round down to nearest package size, unless it would be zero
         if (usePackageSize && packageSizeValue) {
           const packageSizeNum = parseFloat(packageSizeValue);
           if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
-            const packagesUsed = Math.ceil(finalQuantity / packageSizeNum);
-            resultString += `\nPackages used: ${packagesUsed}`;
+            finalQuantity = Math.floor(totalGramsNeeded / packageSizeNum) * packageSizeNum;
+            // If rounding down would result in zero, round up instead
+            if (finalQuantity === 0 && totalGramsNeeded > 0) {
+              finalQuantity = packageSizeNum;
+            }
+            const packagesUsed = finalQuantity / packageSizeNum;
+            resultString = `${finalQuantity} grams (adjusted to package size) | ${totalGramsNeeded.toFixed(2)} grams (unadjusted)\nPackages used: ${packagesUsed}`;
           }
         }
         setResult(resultString);
@@ -622,27 +604,19 @@ export default function TabTwoScreen() {
         // Calculate grams needed
         const gramsNeeded = totalPuffsNeeded / puffsPerGram;
         
-        // Round up to the nearest package size
-        const packagesNeeded = Math.ceil(gramsNeeded / gramsNum);
-        const finalGrams = packagesNeeded * gramsNum;
-
-        console.log('Oral Inhaler Quantity Calculation:', {
-          actualDays,
-          dosesPerDay,
-          totalPuffsNeeded,
-          puffsPerGram,
-          gramsNeeded,
-          packagesNeeded,
-          finalGrams
-        });
-
-        // Add package count if package size is enabled
-        let resultString = `${finalGrams} grams (adjusted to package size) | ${gramsNeeded} grams (unadjusted to package size)`;
+        let finalGrams = gramsNeeded;
+        let resultString = `${gramsNeeded.toFixed(2)} grams needed`;
+        // Round down to nearest package size, unless it would be zero
         if (usePackageSize && packageSizeValue) {
           const packageSizeNum = parseFloat(packageSizeValue);
           if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
-            const packagesUsed = Math.ceil(finalGrams / packageSizeNum);
-            resultString += `\nPackages used: ${packagesUsed}`;
+            finalGrams = Math.floor(gramsNeeded / packageSizeNum) * packageSizeNum;
+            // If rounding down would result in zero, round up instead
+            if (finalGrams === 0 && gramsNeeded > 0) {
+              finalGrams = packageSizeNum;
+            }
+            const packagesUsed = finalGrams / packageSizeNum;
+            resultString = `${finalGrams} grams (adjusted to package size) | ${gramsNeeded.toFixed(2)} grams (unadjusted)\nPackages used: ${packagesUsed}`;
           }
         }
         setResult(resultString);
@@ -686,27 +660,19 @@ export default function TabTwoScreen() {
         // Calculate ml needed
         const mlNeeded = totalSpraysNeeded / spraysPerMl;
         
-        // Round up to the nearest package size
-        const packagesNeeded = Math.ceil(mlNeeded / mlsNum);
-        const finalMls = packagesNeeded * mlsNum;
-
-        console.log('Nasal Inhaler Quantity Calculation:', {
-          actualDays,
-          dosesPerDay,
-          totalSpraysNeeded,
-          spraysPerMl,
-          mlNeeded,
-          packagesNeeded,
-          finalMls
-        });
-
-        // Add package count if package size is enabled
-        let resultString = `${finalMls} ml (adjusted to package size) | ${mlNeeded} ml (unadjusted to package size)`;
+        let finalMls = mlNeeded;
+        let resultString = `${mlNeeded.toFixed(2)} ml needed`;
+        // Round down to nearest package size, unless it would be zero
         if (usePackageSize && packageSizeValue) {
           const packageSizeNum = parseFloat(packageSizeValue);
           if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
-            const packagesUsed = Math.ceil(finalMls / packageSizeNum);
-            resultString += `\nPackages used: ${packagesUsed}`;
+            finalMls = Math.floor(mlNeeded / packageSizeNum) * packageSizeNum;
+            // If rounding down would result in zero, round up instead
+            if (finalMls === 0 && mlNeeded > 0) {
+              finalMls = packageSizeNum;
+            }
+            const packagesUsed = finalMls / packageSizeNum;
+            resultString = `${finalMls} ml (adjusted to package size) | ${mlNeeded.toFixed(2)} ml (unadjusted)\nPackages used: ${packagesUsed}`;
           }
         }
         setResult(resultString);

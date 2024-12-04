@@ -140,33 +140,76 @@ export default function TabTwoScreen() {
       })();
 
       if (concentrationEnabled && concentrationValue1 && concentrationValue2) {
-        // Add console.log statements to debug the calculation
-        console.log('Concentration Values:', {
-          concValue1: parseFloat(concentrationValue1), // Should be 25mg
-          concValue2: parseFloat(concentrationValue2), // Should be 5ml
-          doseValue: parseFloat(dosagePerUnit),       // Should be 12.5mg
-          quantityNum,                                // Should be 120ml
-          dosesPerDay                                 // Should be 3 (24/8)
-        });
+        // Calculate concentration ratio (e.g., mg/ml)
+        const concentrationRatio = parseFloat(concentrationValue1) / parseFloat(concentrationValue2);
+        
+        // Calculate how many ml are needed for each prescribed dose
+        // dosagePerUnit is the prescribed strength (e.g., 500mg)
+        // concentrationRatio is the medication strength per ml (e.g., 250mg/ml)
+        const mlPerDose = parseFloat(dosagePerUnit) / concentrationRatio;
+        
+        if (includeTitration && maxDose) {
+          let remainingQuantity = adjustedQuantity; // This is in ml
+          let totalDays = 0;
 
-        // Calculate mg per ml in the concentration
-        const mgPerMl = parseFloat(concentrationValue1) / parseFloat(concentrationValue2); // Should be 5mg/ml
-        
-        // Calculate ml needed per dose
-        const mlPerDose = parseFloat(dosagePerUnit) / mgPerMl;  // Should be 2.5ml
-        
-        // Calculate total doses available
-        const totalDoses = quantityNum / mlPerDose;             // Should be 48 doses
-        
-        // Calculate days supply
-        resultValue = totalDoses / (dosesPerDay * packageSizeNum); // Should be 16 days
+          // Process each titration stage
+          for (let i = 0; i < titrationStages.length && remainingQuantity > 0; i++) {
+            const currentStage = titrationStages[i];
+            const stageDose = parseFloat(currentStage.quantity); // This is in prescribed units (e.g., mg)
+            const stageDuration = parseFloat(currentStage.duration);
 
-        console.log('Calculated Values:', {
-          mgPerMl,
-          mlPerDose,
-          totalDoses,
-          resultValue
-        });
+            if (isNaN(stageDose) || isNaN(stageDuration)) continue;
+
+            // Convert prescribed dose to ml
+            const stageMlPerDose = (stageDose / concentrationRatio) * packageSizeNum;
+            const stageDailyMl = stageMlPerDose * dosesPerDay;
+            const mlForStage = stageDailyMl * stageDuration;
+
+            if (remainingQuantity >= mlForStage) {
+              totalDays += stageDuration;
+              remainingQuantity -= mlForStage;
+            } else {
+              totalDays += remainingQuantity / stageDailyMl;
+              remainingQuantity = 0;
+            }
+
+            console.log('Titration Stage with Concentration:', {
+              stage: i + 1,
+              prescribedDose: stageDose,
+              concentrationRatio,
+              stageMlPerDose,
+              stageDailyMl,
+              mlForStage,
+              remainingQuantity,
+              totalDays
+            });
+          }
+
+          // If there's still quantity left, use it at max dose
+          if (remainingQuantity > 0) {
+            const maxDoseNum = parseFloat(maxDose);
+            const maxMlPerDose = (maxDoseNum / concentrationRatio) * packageSizeNum;
+            const maxDailyMl = maxMlPerDose * dosesPerDay;
+            const additionalDays = remainingQuantity / maxDailyMl;
+            totalDays += additionalDays;
+
+            console.log('Final Max Dose with Concentration:', {
+              remainingQuantity,
+              maxDoseNum,
+              maxMlPerDose,
+              maxDailyMl,
+              additionalDays,
+              totalDays
+            });
+          }
+
+          resultValue = totalDays;
+        } else {
+          // Regular concentration calculation
+          // Convert the total volume (quantityNum) to doses based on mlPerDose
+          const totalMlNeeded = mlPerDose * dosesPerDay * packageSizeNum;
+          resultValue = quantityNum / totalMlNeeded;
+        }
       } else if (includeTitration && maxDose) {
         console.log('Titration Initial Values:', {
           quantity: adjustedQuantity,
@@ -408,7 +451,7 @@ export default function TabTwoScreen() {
           expectedQuantity: 2.5
         });
 
-        setResult(`${finalQuantity} mL needed`);
+        setResult(`${finalQuantity} mL needed  | ${mlNeeded} mL (unadjusted to package size)`);
       } else if (includeTitration && maxDose) {
         console.log('Quantity Calculation Initial Values:', {
           targetDays: daysNum,
@@ -504,8 +547,8 @@ export default function TabTwoScreen() {
         // Calculate total grams needed
         const totalGramsNeeded = totalGramsPerApplication * dosesPerDay * daysNum;
         
-        // Calculate number of packages needed (round up)
-        const packagesNeeded = Math.ceil(totalGramsNeeded / packageSizeNum);
+        // Calculate number of packages needed (round down)
+        const packagesNeeded = Math.floor(totalGramsNeeded / packageSizeNum);
         
         // Final quantity is number of packages times package size
         const finalQuantity = packagesNeeded * packageSizeNum;
@@ -519,7 +562,7 @@ export default function TabTwoScreen() {
           finalQuantity
         });
 
-        setResult(`${finalQuantity} grams needed`);
+        setResult(`${finalQuantity} grams (adjusted to package size)  | ${totalGramsNeeded} grams (unadjusted to package size)`);
       } else if (weightUnit === 'Oral Inhaler') {
         // Parse inhaler-specific values
         const puffsNum = parseFloat(puffsPerPackage);

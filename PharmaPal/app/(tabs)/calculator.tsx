@@ -88,15 +88,6 @@ export default function TabTwoScreen() {
     week: 7,
   };
 
-  const unitConversions: Record<MeasurementUnit, number> = {
-    mcg: 1,           // base unit
-    mg: 1000,         // 1 mg = 1000 mcg
-    g: 1000000,       // 1 g = 1000 mg = 1,000,000 mcg
-    gm: 1000000,      // same as g
-    ml: 1000000,      // 1 ml = 1000 mg = 1,000,000 mcg
-    units: 1000,      // assuming 1 unit = 1 mg
-  };
-
   const calculate = () => {
     const quantityNum = parseFloat(quantity);
     const packageSizeNum = parseFloat(packageSize);

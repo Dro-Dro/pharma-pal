@@ -725,7 +725,7 @@ export default function TabTwoScreen() {
                 value={packageSizeValue}
                 onChangeText={setPackageSizeValue}
                 keyboardType="numeric"
-                placeholder="Package size multiple"
+                placeholder="Package size"
                 placeholderTextColor="#666"
               />
               <ThemedText style={styles.unitLabel}>units</ThemedText>

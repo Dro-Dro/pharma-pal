@@ -172,23 +172,27 @@ export default function TabTwoScreen() {
           quantity: adjustedQuantity,
           titrationStages,
           maxDose: parseFloat(maxDose),
-          dosesPerDay
+          dosesPerDay,
+          packageSize: packageSizeNum
         });
 
-        const maxDoseNum = parseFloat(maxDose);
+        const maxDoseNum = parseFloat(maxDose) * packageSizeNum;
         let remainingQuantity = adjustedQuantity;
         let totalDays = 0;
 
         // Process each titration stage
         for (let i = 0; i < titrationStages.length && remainingQuantity > 0; i++) {
           const currentStage = titrationStages[i];
-          const stageDose = parseFloat(currentStage.quantity);
+          const stageDose = parseFloat(currentStage.quantity) * packageSizeNum; // Account for uses per frequency
           const stageDuration = parseFloat(currentStage.duration);
 
           if (isNaN(stageDose) || isNaN(stageDuration)) continue;
 
+          // Calculate daily usage based on frequency settings
+          const stageDailyDose = stageDose * dosesPerDay;
+          
           // Calculate quantity needed for this stage
-          const quantityForStage = stageDose * stageDuration;
+          const quantityForStage = stageDailyDose * stageDuration;
           
           // If we have enough quantity for the full stage
           if (remainingQuantity >= quantityForStage) {
@@ -196,13 +200,14 @@ export default function TabTwoScreen() {
             remainingQuantity -= quantityForStage;
           } else {
             // If we don't have enough for the full stage
-            totalDays += remainingQuantity / stageDose;
+            totalDays += remainingQuantity / stageDailyDose;
             remainingQuantity = 0;
           }
 
           console.log('Titration Stage Calculation:', {
             stage: i + 1,
             stageDose,
+            stageDailyDose,
             stageDuration,
             quantityForStage,
             remainingQuantity,
@@ -212,12 +217,14 @@ export default function TabTwoScreen() {
 
         // If there's still quantity left, use it at max dose
         if (remainingQuantity > 0) {
-          const additionalDays = remainingQuantity / maxDoseNum;
+          const maxDailyDose = maxDoseNum * dosesPerDay;
+          const additionalDays = remainingQuantity / maxDailyDose;
           totalDays += additionalDays;
           
           console.log('Final Max Dose Calculation:', {
             remainingQuantity,
             maxDoseNum,
+            maxDailyDose,
             additionalDays,
             totalDays
           });
@@ -322,9 +329,20 @@ export default function TabTwoScreen() {
 
       // Format the result string
       let resultString = `${roundedFinal} (${finalResult.toFixed(1)}) ${outputUnit}${finalResult === 1 ? '' : 's'}`;
+      
+      // Add package count if package size is enabled
+      if (usePackageSize && packageSizeValue) {
+        const packageSizeNum = parseFloat(packageSizeValue);
+        if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
+          const packagesUsed = Math.ceil(adjustedQuantity / packageSizeNum);
+          resultString += `\nPackages used: ${packagesUsed}`;
+        }
+      }
+      
       if (usePackageSize || useBeyondUseDate) {
         resultString += `\nOriginal: ${roundedOriginal} (${originalResult.toFixed(1)}) ${outputUnit}${originalResult === 1 ? '' : 's'}`;
       }
+      
       setResult(resultString);
     } else {  // calculationType === 'quantity'
       const daysNum = parseFloat(daySupply);
@@ -954,7 +972,7 @@ export default function TabTwoScreen() {
                       placeholder="Maximum dose"
                       placeholderTextColor="#666"
                     />
-                    <ThemedText style={styles.unitLabel}>units</ThemedText>
+                    <ThemedText style={styles.unitLabel}>units per frequency</ThemedText>
                   </View>
 
                   {titrationStages.map((stage, index) => (
@@ -971,10 +989,10 @@ export default function TabTwoScreen() {
                             setTitrationStages(newStages);
                           }}
                           keyboardType="numeric"
-                          placeholder="Quantity per day"
+                          placeholder="Quantity per frequency"
                           placeholderTextColor="#666"
                         />
-                        <ThemedText style={styles.unitLabel}>units/day</ThemedText>
+                        <ThemedText style={styles.unitLabel}>units per frequency</ThemedText>
                       </View>
 
                       <View style={styles.inputRow}>

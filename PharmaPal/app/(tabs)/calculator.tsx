@@ -451,7 +451,17 @@ export default function TabTwoScreen() {
           expectedQuantity: 2.5
         });
 
-        setResult(`${finalQuantity} mL needed  | ${mlNeeded} mL (unadjusted to package size)`);
+        // Add package count if package size is enabled
+        let resultString = `${finalQuantity} mL needed  | ${mlNeeded} mL (unadjusted to package size)`;
+        if (usePackageSize && packageSizeValue) {
+          const packageSizeNum = parseFloat(packageSizeValue);
+          if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
+            const packagesUsed = Math.ceil(finalQuantity / packageSizeNum);
+            resultString += `\nPackages used: ${packagesUsed}`;
+          }
+        }
+        setResult(resultString);
+
       } else if (includeTitration && maxDose) {
         console.log('Quantity Calculation Initial Values:', {
           targetDays: daysNum,
@@ -562,7 +572,17 @@ export default function TabTwoScreen() {
           finalQuantity
         });
 
-        setResult(`${finalQuantity} grams (adjusted to package size)  | ${totalGramsNeeded} grams (unadjusted to package size)`);
+        // Add package count if package size is enabled
+        let resultString = `${finalQuantity} grams (adjusted to package size)  | ${totalGramsNeeded} grams (unadjusted to package size)`;
+        if (usePackageSize && packageSizeValue) {
+          const packageSizeNum = parseFloat(packageSizeValue);
+          if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
+            const packagesUsed = Math.ceil(finalQuantity / packageSizeNum);
+            resultString += `\nPackages used: ${packagesUsed}`;
+          }
+        }
+        setResult(resultString);
+
       } else if (weightUnit === 'Oral Inhaler') {
         // Parse inhaler-specific values
         const puffsNum = parseFloat(puffsPerPackage);
@@ -616,7 +636,16 @@ export default function TabTwoScreen() {
           finalGrams
         });
 
-        setResult(`${finalGrams} grams (adjusted to package size) | ${gramsNeeded} grams (unadjusted to package size)`);
+        // Add package count if package size is enabled
+        let resultString = `${finalGrams} grams (adjusted to package size) | ${gramsNeeded} grams (unadjusted to package size)`;
+        if (usePackageSize && packageSizeValue) {
+          const packageSizeNum = parseFloat(packageSizeValue);
+          if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
+            const packagesUsed = Math.ceil(finalGrams / packageSizeNum);
+            resultString += `\nPackages used: ${packagesUsed}`;
+          }
+        }
+        setResult(resultString);
         return;
       } else if (weightUnit === 'Nasal Inhaler') {
         // Parse inhaler-specific values
@@ -671,7 +700,16 @@ export default function TabTwoScreen() {
           finalMls
         });
 
-        setResult(`${finalMls} ml (adjusted to package size) | ${mlNeeded} ml (unadjusted to package size)`);
+        // Add package count if package size is enabled
+        let resultString = `${finalMls} ml (adjusted to package size) | ${mlNeeded} ml (unadjusted to package size)`;
+        if (usePackageSize && packageSizeValue) {
+          const packageSizeNum = parseFloat(packageSizeValue);
+          if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
+            const packagesUsed = Math.ceil(finalMls / packageSizeNum);
+            resultString += `\nPackages used: ${packagesUsed}`;
+          }
+        }
+        setResult(resultString);
         return;
       }
     }

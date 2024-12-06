@@ -456,31 +456,304 @@ export default function TabTwoScreen() {
           setResult(resultString);
           return;
         } else {
-          // Regular quantity calculation without titration or concentration
-          const dailyUsage = dosesPerDay * packageSizeNum;
-          const totalQuantity = dailyUsage * actualDays;
           
-          let resultString = `${totalQuantity.toFixed(2)} units needed`;
-          if (usePackageSize && packageSizeValue) {
-            const packageSizeNum = parseFloat(packageSizeValue);
-            if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
-              const roundedQuantity = Math.ceil(totalQuantity / packageSizeNum) * packageSizeNum;
-              const packagesUsed = roundedQuantity / packageSizeNum;
-              resultString = `${roundedQuantity} units (adjusted to package size) | ${totalQuantity.toFixed(2)} units (unadjusted)\nPackages used: ${packagesUsed}`;
-            }
-          }
-          setResult(resultString);
         }
       } else if (includeTitration && maxDose) {
-        // Titration-only calculations...
+        console.log('Quantity Calculation Initial Values:', {
+          targetDays: daysNum,
+          titrationStages,
+          maxDose: parseFloat(maxDose)
+        });
+
+        const maxDoseNum = parseFloat(maxDose);
+        let totalQuantity = 0;
+        let remainingDays = daysNum;
+
+        // Process each titration stage
+        for (let i = 0; i < titrationStages.length && remainingDays > 0; i++) {
+          const currentStage = titrationStages[i];
+          const stageDose = parseFloat(currentStage.quantity);
+          const stageDuration = parseFloat(currentStage.duration);
+
+          if (isNaN(stageDose) || isNaN(stageDuration)) continue;
+
+          // Calculate days for this stage
+          const daysInStage = Math.min(stageDuration, remainingDays);
+          
+          // Add quantity for this stage
+          totalQuantity += stageDose * daysInStage;
+          remainingDays -= daysInStage;
+
+          console.log('Quantity Stage Calculation:', {
+            stage: i + 1,
+            stageDose,
+            daysInStage,
+            quantityAdded: stageDose * daysInStage,
+            remainingDays,
+            totalQuantity
+          });
+        }
+
+        // If there are remaining days, calculate at max dose
+        if (remainingDays > 0) {
+          const finalQuantity = maxDoseNum * remainingDays;
+          totalQuantity += finalQuantity;
+
+          console.log('Final Max Dose Quantity:', {
+            remainingDays,
+            maxDoseNum,
+            finalQuantity,
+            totalQuantity
+          });
+        }
+
+        setResult(`${totalQuantity} units needed`);
+        return;
       } else if (weightUnit === 'Eye Drops') {
-        // Eye drops calculations...
+        // Parse eye drops-specific values
+        const dropsPerMlNum = parseFloat(dropsPerMl);
+        const packageSizeNum = parseFloat(packageSizeValue || '2.5');
+
+        // Calculate doses per day
+        const dosesPerDay = (() => {
+          if (frequencyPattern === 'everyOther') {
+            return 0.5;
+          }
+          if (frequencyUnit === 'hour') {
+            return 24 / frequencyNum;
+          }
+          if (frequencyUnit === 'day') {
+            return frequencyNum;
+          }
+          if (frequencyUnit === 'week') {
+            return frequencyNum / 7;
+          }
+          return getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit);
+        })();
+
+        // Convert target days to actual days based on time unit
+        const actualDays = daysNum * timeConversions[outputUnit];
+
+        // Eye Drops Quantity Testing
+        console.log('Eye Drops Quantity Initial Values:', {
+          targetDays: actualDays,
+          dropsPerMl: dropsPerMlNum,
+          dosesPerDay,
+          packageSize: packageSizeNum
+        });
+
+        // Calculate total drops needed
+        const totalDropsNeeded = actualDays * dosesPerDay;
+        
+        // Convert drops to mL
+        const mlNeeded = totalDropsNeeded / dropsPerMlNum;
+        
+        let finalQuantity = mlNeeded;
+        let resultString = `${mlNeeded.toFixed(2)} mL needed`;
+        // Round down to nearest package size, unless it would be zero
+        if (usePackageSize && packageSizeValue) {
+          const packageSizeNum = parseFloat(packageSizeValue);
+          if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
+            finalQuantity = Math.floor(mlNeeded / packageSizeNum) * packageSizeNum;
+            // If rounding down would result in zero, round up instead
+            if (finalQuantity === 0 && mlNeeded > 0) {
+              finalQuantity = packageSizeNum;
+            }
+            const packagesUsed = finalQuantity / packageSizeNum;
+            resultString = `${finalQuantity} mL needed (adjusted to package size) | ${mlNeeded.toFixed(2)} mL (unadjusted)\nPackages used: ${packagesUsed}`;
+          }
+        }
+        setResult(resultString);
+
       } else if (weightUnit === 'Oral Inhaler') {
-        // Oral inhaler calculations...
+        // Parse inhaler-specific values
+        const puffsNum = parseFloat(puffsPerPackage);
+        const gramsNum = parseFloat(packageGrams);
+        
+        if (isNaN(puffsNum) || isNaN(gramsNum)) {
+          setResult('Please enter valid inhaler values');
+          return;
+        }
+
+        // Calculate doses per day
+        const dosesPerDay = (() => {
+          if (frequencyPattern === 'everyOther') {
+            return 0.5 * parseFloat(packageSize);
+          }
+          if (frequencyUnit === 'hour') {
+            return (24 / parseFloat(frequencyNumber)) * parseFloat(packageSize);
+          }
+          if (frequencyUnit === 'day') {
+            return parseFloat(frequencyNumber) * parseFloat(packageSize);
+          }
+          if (frequencyUnit === 'week') {
+            return (parseFloat(frequencyNumber) / 7) * parseFloat(packageSize);
+          }
+          return getFrequencyPerDay(parseFloat(frequencyNumber), frequencyPattern, frequencyUnit) * parseFloat(packageSize);
+        })();
+
+        // Convert target days to actual days based on time unit
+        const actualDays = parseFloat(daySupply) * timeConversions[outputUnit];
+
+        // Calculate total puffs needed
+        const totalPuffsNeeded = actualDays * dosesPerDay;
+        
+        // Calculate puffs per gram ratio
+        const puffsPerGram = puffsNum / gramsNum;
+        
+        // Calculate grams needed
+        const gramsNeeded = totalPuffsNeeded / puffsPerGram;
+        
+        let finalGrams = gramsNeeded;
+        let resultString = `${gramsNeeded.toFixed(2)} grams needed`;
+        // Round down to nearest package size, unless it would be zero
+        if (usePackageSize && packageSizeValue) {
+          const packageSizeNum = parseFloat(packageSizeValue);
+          if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
+            finalGrams = Math.floor(gramsNeeded / packageSizeNum) * packageSizeNum;
+            // If rounding down would result in zero, round up instead
+            if (finalGrams === 0 && gramsNeeded > 0) {
+              finalGrams = packageSizeNum;
+            }
+            const packagesUsed = finalGrams / packageSizeNum;
+            resultString = `${finalGrams} grams (adjusted to package size) | ${gramsNeeded.toFixed(2)} grams (unadjusted)\nPackages used: ${packagesUsed}`;
+          }
+        }
+        setResult(resultString);
+        return;
       } else if (weightUnit === 'Nasal Inhaler') {
-        // Nasal inhaler calculations...
+        // Parse inhaler-specific values
+        const spraysNum = parseFloat(spraysPerPackage);
+        const mlsNum = parseFloat(nasalPackageMls);
+        
+        if (isNaN(spraysNum) || isNaN(mlsNum)) {
+          setResult('Please enter valid inhaler values');
+          return;
+        }
+
+        // Calculate doses per day
+        const dosesPerDay = (() => {
+          if (frequencyPattern === 'everyOther') {
+            return 0.5 * parseFloat(packageSize);
+          }
+          if (frequencyUnit === 'hour') {
+            return (24 / parseFloat(frequencyNumber)) * parseFloat(packageSize);
+          }
+          if (frequencyUnit === 'day') {
+            return parseFloat(frequencyNumber) * parseFloat(packageSize);
+          }
+          if (frequencyUnit === 'week') {
+            return (parseFloat(frequencyNumber) / 7) * parseFloat(packageSize);
+          }
+          return getFrequencyPerDay(parseFloat(frequencyNumber), frequencyPattern, frequencyUnit) * parseFloat(packageSize);
+        })();
+
+        // Convert target days to actual days based on time unit
+        const actualDays = parseFloat(daySupply) * timeConversions[outputUnit];
+
+        // Calculate total puffs needed
+        const totalSpraysNeeded = actualDays * dosesPerDay;
+        
+        // Calculate sprays per ml ratio
+        const spraysPerMl = spraysNum / mlsNum;
+        
+        // Calculate ml needed
+        const mlNeeded = totalSpraysNeeded / spraysPerMl;
+        
+        let finalMls = mlNeeded;
+        let resultString = `${mlNeeded.toFixed(2)} ml needed`;
+        // Round down to nearest package size, unless it would be zero
+        if (usePackageSize && packageSizeValue) {
+          const packageSizeNum = parseFloat(packageSizeValue);
+          if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
+            finalMls = Math.floor(mlNeeded / packageSizeNum) * packageSizeNum;
+            // If rounding down would result in zero, round up instead
+            if (finalMls === 0 && mlNeeded > 0) {
+              finalMls = packageSizeNum;
+            }
+            const packagesUsed = finalMls / packageSizeNum;
+            resultString = `${finalMls} ml (adjusted to package size) | ${mlNeeded.toFixed(2)} ml (unadjusted)\nPackages used: ${packagesUsed}`;
+          }
+        }
+        setResult(resultString);
+        return;
+        
+      } else if (weightUnit === 'Topical') {
+        // Calculate doses per day
+        const dosesPerDay = (() => {
+          console.log('Frequency Values:', {
+            frequencyNum,
+            packageSizeNum,
+            frequencyPattern,
+            frequencyUnit,
+            expectedDosesPerDay: 2
+          });
+
+          if (frequencyPattern === 'everyOther') {
+            return 0.5 * packageSizeNum;
+          }
+          if (frequencyUnit === 'hour') {
+            return (24 / frequencyNum) * packageSizeNum;
+          }
+          if (frequencyUnit === 'day') {
+            return frequencyNum * packageSizeNum;  // This will now be 2 * packageSize
+          }
+          if (frequencyUnit === 'week') {
+            return (frequencyNum / 7) * packageSizeNum;
+          }
+          return getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit) * packageSizeNum;
+        })();
+
+        console.log('Detailed Topical Values:', {
+          frequencyNum,
+          frequencyPattern,
+          frequencyUnit,
+          dosesPerDay,
+          selectedAreas: Array.from(selectedAreas),
+          packageSizeNum,
+          daysNum
+        });
+
+        // Calculate total grams per application
+        const totalGramsPerApplication = TOPICAL_AREAS
+          .filter(area => selectedAreas.has(area.name))
+          .reduce((sum, area) => sum + area.grams, 0);
+
+        // Calculate total grams needed
+        const totalGramsNeeded = totalGramsPerApplication * dosesPerDay * daysNum;
+        
+        let finalQuantity = totalGramsNeeded;
+        let resultString = `${totalGramsNeeded.toFixed(2)} grams needed`;
+        // Round down to nearest package size, unless it would be zero
+        if (usePackageSize && packageSizeValue) {
+          const packageSizeNum = parseFloat(packageSizeValue);
+          if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
+            finalQuantity = Math.floor(totalGramsNeeded / packageSizeNum) * packageSizeNum;
+            // If rounding down would result in zero, round up instead
+            if (finalQuantity === 0 && totalGramsNeeded > 0) {
+              finalQuantity = packageSizeNum;
+            }
+            const packagesUsed = finalQuantity / packageSizeNum;
+            resultString = `${finalQuantity} grams (adjusted to package size) | ${totalGramsNeeded.toFixed(2)} grams (unadjusted)\nPackages used: ${packagesUsed}`;
+          }
+        }
+        setResult(resultString);
+
       } else {
-        // Regular quantity calculation...
+        // Regular quantity calculation without titration or concentration
+        const dailyUsage = dosesPerDay * packageSizeNum;
+        const totalQuantity = dailyUsage * actualDays;
+        
+        let resultString = `${totalQuantity.toFixed(2)} units needed`;
+        if (usePackageSize && packageSizeValue) {
+          const packageSizeNum = parseFloat(packageSizeValue);
+          if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
+            const roundedQuantity = Math.ceil(totalQuantity / packageSizeNum) * packageSizeNum;
+            const packagesUsed = roundedQuantity / packageSizeNum;
+            resultString = `${roundedQuantity} units (adjusted to package size) | ${totalQuantity.toFixed(2)} units (unadjusted)\nPackages used: ${packagesUsed}`;
+          }
+        }
+        setResult(resultString);
       }
     }
   };

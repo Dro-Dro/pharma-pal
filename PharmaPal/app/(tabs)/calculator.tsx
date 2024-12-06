@@ -452,13 +452,13 @@ export default function TabTwoScreen() {
             totalQuantity += finalQuantity;
           }
 
-          let resultString = `${totalQuantity.toFixed(2)} units needed`;
+          let resultString = `${totalQuantity.toFixed(2)} ${measurementUnit} needed`;
           if (usePackageSize && packageSizeValue) {
             const packageSizeNum = parseFloat(packageSizeValue);
             if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
               const roundedQuantity = Math.ceil(totalQuantity / packageSizeNum) * packageSizeNum;
               const packagesUsed = roundedQuantity / packageSizeNum;
-              resultString = `${roundedQuantity} units (adjusted to package size) | ${totalQuantity.toFixed(2)} units (unadjusted)\nPackages used: ${packagesUsed}`;
+              resultString = `${roundedQuantity} ${measurementUnit} (adjusted to package size) | ${totalQuantity.toFixed(2)} ${measurementUnit} (unadjusted)\nPackages used: ${packagesUsed}`;
             }
           }
           setResult(resultString);
@@ -469,13 +469,13 @@ export default function TabTwoScreen() {
           const dailyMl = mlPerDose * dosesPerDay;
           const totalQuantity = dailyMl * actualDays;
 
-          let resultString = `${totalQuantity.toFixed(2)} ml needed`;
+          let resultString = `${totalQuantity.toFixed(2)} ${measurementUnit} needed`;
           if (usePackageSize && packageSizeValue) {
             const packageSizeNum = parseFloat(packageSizeValue);
             if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
               const roundedQuantity = Math.floor(totalQuantity / packageSizeNum) * packageSizeNum;
               const packagesUsed = roundedQuantity / packageSizeNum;
-              resultString = `${roundedQuantity} units (adjusted to package size) | ${totalQuantity.toFixed(2)} units (unadjusted)\nPackages used: ${packagesUsed}`;
+              resultString = `${roundedQuantity} ${measurementUnit} (adjusted to package size) | ${totalQuantity.toFixed(2)} ${measurementUnit} (unadjusted)\nPackages used: ${packagesUsed}`;
             }
           }
           setResult(resultString);
@@ -893,7 +893,7 @@ export default function TabTwoScreen() {
                 placeholder="Package size"
                 placeholderTextColor="#666"
               />
-              <ThemedText style={styles.unitLabel}>units</ThemedText>
+              <ThemedText style={styles.unitLabel}>{measurementUnit}</ThemedText>
             </View>
           )}
 

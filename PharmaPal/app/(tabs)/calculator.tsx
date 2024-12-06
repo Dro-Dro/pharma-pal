@@ -382,7 +382,6 @@ export default function TabTwoScreen() {
       const daysNum = parseFloat(daySupply);
       const frequencyNum = parseFloat(frequencyNumber);
       const packageSizeNum = parseFloat(packageSize);
-      const dropsPerMlNum = parseFloat(dropsPerMl);
       
       if (isNaN(daysNum) || isNaN(frequencyNum) || isNaN(packageSizeNum)) {
         setResult('Please enter valid numbers');
@@ -410,6 +409,15 @@ export default function TabTwoScreen() {
       })();
 
       if (concentrationEnabled && concentrationValue1 && concentrationValue2) {
+        // Add console.log statements to debug the calculation
+        console.log('Concentration Values:', {
+          concValue1: parseFloat(concentrationValue1), // Should be 200 mg/units
+          concValue2: parseFloat(concentrationValue2), // Should be 1ml
+          doseValue: parseFloat(dosagePerUnit),       // Should be 180 mg/units
+          quantityNum,                                // Should be 90ml
+          dosesPerDay                                 // Should be 1
+        });
+
         // Calculate concentration ratio (e.g., mg/ml)
         const concentrationRatio = parseFloat(concentrationValue1) / parseFloat(concentrationValue2);
         
@@ -456,7 +464,22 @@ export default function TabTwoScreen() {
           setResult(resultString);
           return;
         } else {
-          
+          // Regular concentration calculation
+          const mlPerDose = parseFloat(dosagePerUnit) / concentrationRatio;
+          const dailyMl = mlPerDose * dosesPerDay;
+          const totalQuantity = dailyMl * actualDays;
+
+          let resultString = `${totalQuantity.toFixed(2)} ml needed`;
+          if (usePackageSize && packageSizeValue) {
+            const packageSizeNum = parseFloat(packageSizeValue);
+            if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
+              const roundedQuantity = Math.floor(totalQuantity / packageSizeNum) * packageSizeNum;
+              const packagesUsed = roundedQuantity / packageSizeNum;
+              resultString = `${roundedQuantity} units (adjusted to package size) | ${totalQuantity.toFixed(2)} units (unadjusted)\nPackages used: ${packagesUsed}`;
+            }
+          }
+          setResult(resultString);
+          return;
         }
       } else if (includeTitration && maxDose) {
         console.log('Quantity Calculation Initial Values:', {

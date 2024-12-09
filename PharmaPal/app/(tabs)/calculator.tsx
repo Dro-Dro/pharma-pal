@@ -74,6 +74,7 @@ export default function TabTwoScreen() {
   const [usePackageSize, setUsePackageSize] = useState(false);
   const [useBeyondUseDate, setUseBeyondUseDate] = useState(false);
   const [packageSize, setPackageSize] = useState('');
+  const [numOfPackages, setNumOfPackages] = useState('1');
   const [beyondUseDateValue, setBeyondUseDateValue] = useState('');
   const [selectedAreas, setSelectedAreas] = useState<Set<string>>(new Set());
   const [puffsPerPackage, setPuffsPerPackage] = useState('');
@@ -195,12 +196,17 @@ export default function TabTwoScreen() {
           }
 
           resultValue = totalDays;
+          console.log('Total Days:', totalDays);
         } else {
           // Regular concentration calculation
           // Convert the total volume (quantityNum) to doses based on mlPerDose
           const totalMlNeeded = mlPerDose * dosesPerDay * usesPerFrequencyNum;
           resultValue = quantityNum / totalMlNeeded;
+          console.log('Total Days:', resultValue);
         }
+        const resultString = `${resultValue} days supply`;
+        setResult(resultString);
+        return;
       } else if (includeTitration && maxDose) {
         console.log('Titration Initial Values:', {
           quantity: adjustedQuantity,
@@ -445,7 +451,7 @@ export default function TabTwoScreen() {
 
         // Calculate concentration ratio (e.g., mg/ml)
         const concentrationRatio = parseFloat(concentrationValue1) / parseFloat(concentrationValue2);
-        
+        console.log('Concentration Ratio:', concentrationRatio);
         if (includeTitration && maxDose) {
           let totalQuantity = 0;
           let remainingDays = actualDays;
@@ -467,6 +473,8 @@ export default function TabTwoScreen() {
             
             totalQuantity += quantityForStage;
             remainingDays -= daysInStage;
+            console.log('Total Quantity:', totalQuantity);
+            console.log('Remaining Days:', remainingDays);  
           }
 
           // If there are remaining days, calculate at max dose
@@ -475,6 +483,7 @@ export default function TabTwoScreen() {
             const maxDailyDose = maxDoseNum * dosesPerDay;
             const finalQuantity = maxDailyDose * remainingDays;
             totalQuantity += finalQuantity;
+            console.log('Final Quantity:', finalQuantity);
           }
 
           let resultString = `${totalQuantity.toFixed(2)} ${measurementUnit} needed`;
@@ -493,14 +502,40 @@ export default function TabTwoScreen() {
           const mlPerDose = parseFloat(dosagePerUnit) / concentrationRatio;
           const dailyMl = mlPerDose * dosesPerDay;
           const totalQuantity = dailyMl * actualDays;
+          const numberOfPackages = parseFloat(numOfPackages);
+          console.log('Total Quantity:', totalQuantity);
+          console.log('Actual Days:', actualDays);
+          console.log('Doses Per Day:', dosesPerDay);
+          console.log('ML Per Dose:', mlPerDose);
+          console.log('Daily ML:', dailyMl);
 
           let resultString = `${totalQuantity.toFixed(2)} ${measurementUnit} needed`;
           if (usePackageSize && packageSize) {
             const usesPerFrequencyNum = parseFloat(packageSize);
             if (!isNaN(usesPerFrequencyNum) && usesPerFrequencyNum > 0) {
-              const roundedQuantity = Math.floor(totalQuantity / usesPerFrequencyNum) * usesPerFrequencyNum;
-              const packagesUsed = roundedQuantity / usesPerFrequencyNum;
-              resultString = `${roundedQuantity} ${measurementUnit} (adjusted to package size) | ${totalQuantity.toFixed(2)} ${measurementUnit} (unadjusted)\nPackages used: ${packagesUsed}`;
+              let roundedQuantity = Math.floor(totalQuantity / usesPerFrequencyNum) * usesPerFrequencyNum;
+              let packagesUsed = roundedQuantity / usesPerFrequencyNum;
+              if (numberOfPackages > 1) {
+                console.log('Rounded Quantity:', roundedQuantity);
+
+                const totalPackageSize = numberOfPackages * usesPerFrequencyNum;
+                console.log('Total Package Size:', totalPackageSize);
+
+                roundedQuantity = Math.floor(totalQuantity / totalPackageSize) * totalPackageSize;
+                console.log('Rounded Quantity (rounded by numOfPackages):', roundedQuantity);
+
+                console.log('Packages Used:', packagesUsed);
+
+                packagesUsed = Math.floor(packagesUsed / numberOfPackages) * numberOfPackages;
+                console.log('Packages Used (rounded):', packagesUsed);
+                const roundedPackagesUsed = packagesUsed / numberOfPackages;
+
+                resultString = `${roundedQuantity} ${measurementUnit} (adjusted to package size) | ${totalQuantity.toFixed(2)} ${measurementUnit} (unadjusted)\nPackages used: ${packagesUsed} (${roundedPackagesUsed} x ${numberOfPackages}x${packageSize}${measurementUnit})`;
+              } else {
+                console.log('Rounded Quantity:', roundedQuantity);
+                console.log('Packages Used:', packagesUsed);
+                resultString = `${roundedQuantity} ${measurementUnit} (adjusted to package size) | ${totalQuantity.toFixed(2)} ${measurementUnit} (unadjusted)\nPackages used: ${packagesUsed}`;
+              }
             }
           }
           setResult(resultString);
@@ -561,6 +596,7 @@ export default function TabTwoScreen() {
         // Parse eye drops-specific values
         const dropsPerMlNum = parseFloat(dropsPerMl);
         const usesPerFrequencyNum = parseFloat(packageSize || '2.5');
+        const beyondUsePeriod = parseFloat(beyondUseDateValue || '0');
 
         // Calculate doses per day
         const dosesPerDay = (() => {
@@ -590,29 +626,48 @@ export default function TabTwoScreen() {
           usesPerFrequency: usesPerFrequencyNum
         });
 
-        // Calculate total drops needed
-        const totalDropsNeeded = actualDays * dosesPerDay;
-        
-        // Convert drops to mL
-        const mlNeeded = totalDropsNeeded / dropsPerMlNum;
-        
-        let finalQuantity = mlNeeded;
-        let resultString = `${mlNeeded.toFixed(2)} mL needed`;
-        // Round down to nearest package size, unless it would be zero
-        if (usePackageSize && packageSize) {
-          const usesPerFrequencyNum = parseFloat(packageSize);
-          if (!isNaN(usesPerFrequencyNum) && usesPerFrequencyNum > 0) {
-            finalQuantity = Math.floor(mlNeeded / usesPerFrequencyNum) * usesPerFrequencyNum;
-            // If rounding down would result in zero, round up instead
-            if (finalQuantity === 0 && mlNeeded > 0) {
-              finalQuantity = usesPerFrequencyNum;
+        if (useBeyondUseDate && beyondUseDateValue && beyondUsePeriod > 0 && usePackageSize && packageSize) {
+          const packageSizeNum = parseFloat(packageSize);
+          if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
+            if(actualDays < beyondUsePeriod) {
+                const resultString = `${packageSizeNum} mL needed (adjusted to package size/BUD)\nPackages used: 1`;
+                setResult(resultString);
+              return;
             }
-            const packagesUsed = finalQuantity / usesPerFrequencyNum;
-            resultString = `${finalQuantity} mL needed (adjusted to package size) | ${mlNeeded.toFixed(2)} mL (unadjusted)\nPackages used: ${packagesUsed}`;
-          }
-        }
-        setResult(resultString);
+            // Round days down to BUD
+            const daySupplyAdjusted = Math.floor(actualDays / beyondUsePeriod) * beyondUsePeriod;
+            console.log('Day Supply Adjusted:', daySupplyAdjusted);
 
+            // Calculate total drops needed
+            const packagesNeeded = daySupplyAdjusted / beyondUsePeriod;
+            console.log('Packages Needed:', packagesNeeded);
+
+            // Convert drops to mL
+            const mlNeeded = packagesNeeded * packageSizeNum;
+            console.log('ML Needed:', mlNeeded);
+
+            // Only round up if rounding down resulted in zero
+            if (mlNeeded === 0 && packagesNeeded > 0) {
+              let mlNeeded = packageSizeNum;
+              console.log('ML Needed:', mlNeeded);
+            }
+            const packagesUsed = mlNeeded / packageSizeNum;
+            const resultString = `${mlNeeded} mL needed (adjusted to package size/BUD)\nPackages used: ${packagesUsed}`;
+            setResult(resultString);
+            return;
+          }
+        } else {
+          // Calculate total drops needed
+          const totalDropsNeeded = actualDays * dosesPerDay;
+        
+          // Convert drops to mL
+          const mlNeeded = totalDropsNeeded / dropsPerMlNum;
+        
+          let finalQuantity = mlNeeded;
+          let resultString = `${mlNeeded.toFixed(2)} mL needed`;
+          setResult(resultString);
+          return;
+        }
       } else if (weightUnit === 'Oral Inhaler') {
         // Parse inhaler-specific values
         const puffsNum = parseFloat(puffsPerPackage);
@@ -821,16 +876,24 @@ export default function TabTwoScreen() {
     return baseRate;
   };
 
-  const formatFrequencyText = (freq: string, pattern: string, unit: string) => {
+  const formatFrequencyText = (uses: string, freq: string, pattern: string, unit: string) => {
     const freqNum = parseFloat(freq);
+    const usesNum = parseFloat(uses);
     if (isNaN(freqNum)) return '';
+    
 
     const unitPlural = freqNum > 1 ? unit + 's' : unit;
     
-    if (pattern === 'everyOther') {
-      return `Once every other ${unit}`;
+    if (usesNum > 1) {
+      // if uses is greater than 1, then it is a plural
+      uses = uses + ' times';
     } else {
-      return `Once every ${freqNum} ${unitPlural}`;
+      uses = uses + ' time';
+    }
+    if (pattern === 'everyOther') {
+      return `${uses} every other ${unit}`;
+    } else {
+      return `${uses} every ${freqNum} ${unitPlural}`;
     }
   };
 
@@ -921,7 +984,15 @@ export default function TabTwoScreen() {
 
           {usePackageSize && (
             <View style={styles.inputRow}>
-              <ThemedText>Package Size</ThemedText>
+              <TextInput
+                style={[styles.input, styles.inputFlex]}
+                value={numOfPackages}
+                onChangeText={setNumOfPackages}
+                keyboardType="numeric"
+                placeholder="Number of packages"
+                placeholderTextColor="#666"
+              />
+              <ThemedText>of Package Size</ThemedText>
               <TextInput
                 style={[styles.input, styles.inputFlex]}
                 value={packageSize}
@@ -972,6 +1043,7 @@ export default function TabTwoScreen() {
                   <Picker.Item label="units" value="units" />
                   <Picker.Item label="tablet" value="tablet" />
                   <Picker.Item label="capsule" value="capsule" />
+                  <Picker.Item label="liquid" value="liquid" />
                   <Picker.Item label="mg" value="mg" />
                   <Picker.Item label="ml" value="ml" />
                   <Picker.Item label="g" value="g" />
@@ -996,6 +1068,9 @@ export default function TabTwoScreen() {
                     onValueChange={setDosageUnit}
                     style={styles.unitPicker}>
                     <Picker.Item label="units" value="units" />
+                    <Picker.Item label="tablet" value="tablet" />
+                    <Picker.Item label="capsule" value="capsule" />
+                    <Picker.Item label="liquid" value="liquid" />
                     <Picker.Item label="mg" value="mg" />
                     <Picker.Item label="ml" value="ml" />
                     <Picker.Item label="g" value="g" />
@@ -1118,6 +1193,10 @@ export default function TabTwoScreen() {
                     selectedValue={concentrationUnit1}
                     onValueChange={setConcentrationUnit1}
                     style={styles.unitPicker}>
+                    <Picker.Item label="units" value="units" />
+                    <Picker.Item label="tablet" value="tablet" />
+                    <Picker.Item label="capsule" value="capsule" />
+                    <Picker.Item label="liquid" value="liquid" />
                     <Picker.Item label="mg" value="mg" />
                     <Picker.Item label="ml" value="ml" />
                     <Picker.Item label="g" value="g" />
@@ -1270,8 +1349,8 @@ export default function TabTwoScreen() {
                 selectedValue={frequencyPattern}
                 onValueChange={setFrequencyPattern}
                 style={styles.patternPicker}>
-                <Picker.Item label="Once every" value="every" />
-                <Picker.Item label="Once every other" value="everyOther" />
+                <Picker.Item label="every" value="every" />
+                <Picker.Item label="every other" value="everyOther" />
               </Picker>
               
               <TextInput
@@ -1295,7 +1374,7 @@ export default function TabTwoScreen() {
             </View>
 
             <ThemedText style={styles.frequencyDisplay}>
-              {formatFrequencyText(frequencyNumber, frequencyPattern, frequencyUnit)}
+              {formatFrequencyText(usesPerFrequency, frequencyNumber, frequencyPattern, frequencyUnit)}
             </ThemedText>
           </View>
 

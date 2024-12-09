@@ -15,7 +15,7 @@ export default function TabTwoScreen() {
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">About</ThemedText>
       </ThemedView>
-      
+
       <ThemedText>Below is information on this application, as well as additional resources.</ThemedText>
       <Collapsible title="PDF Resources">
         <ThemedText>Access helpful pharmacy reference materials:</ThemedText>
@@ -52,6 +52,15 @@ export default function TabTwoScreen() {
         <Collapsible title="Package Size and Beyond Use Date"></Collapsible>
         <Collapsible title="Include Concentration"></Collapsible>
         <Collapsible title="Include Titration"></Collapsible>
+      </Collapsible>
+
+      <Collapsible title="About Us">
+        <ThemedText>This app was created by Hakan Peterson at the University of Washington Bothell as a final project for the CSSE program.</ThemedText>
+        <ThemedText>Special thanks to the following people for their help:</ThemedText>
+        <ThemedText>My friends and family for their support and encouragement.</ThemedText>
+        <ThemedText>My professors for their guidance and support.</ThemedText>
+        <ThemedText>Professor Mark Kochanski for being a great mentor during this capstone project.</ThemedText>
+        <ThemedText>Ostroms' Drug and Gift Staff for their help with the pharmacy reference materials and testing the app.</ThemedText>
       </Collapsible>
       
     </ParallaxScrollView>

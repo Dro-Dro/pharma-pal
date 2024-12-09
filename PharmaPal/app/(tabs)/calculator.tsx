@@ -921,6 +921,7 @@ export default function TabTwoScreen() {
 
           {usePackageSize && (
             <View style={styles.inputRow}>
+              <ThemedText>Package Size</ThemedText>
               <TextInput
                 style={[styles.input, styles.inputFlex]}
                 value={packageSize}
@@ -935,6 +936,7 @@ export default function TabTwoScreen() {
 
           {useBeyondUseDate && (
             <View style={styles.inputRow}>
+              <ThemedText>Beyond Use Date</ThemedText>
               <TextInput
                 style={[styles.input, styles.inputFlex]}
                 value={beyondUseDateValue}
@@ -950,6 +952,7 @@ export default function TabTwoScreen() {
           {calculationType === 'daySupply' ? (
             <>
               <View style={styles.inputRow}>
+                <ThemedText>Quantity</ThemedText>
                 <TextInput
                   style={[styles.input, styles.inputFlex]}
                   value={quantity}
@@ -979,6 +982,7 @@ export default function TabTwoScreen() {
 
               {measurementUnit !== 'units' && !['Oral Inhaler', 'Nasal Inhaler', 'Eye Drops', 'Topical'].includes(weightUnit) && (
                 <View style={styles.inputRow}>
+                  <ThemedText>Dosage</ThemedText>
                   <TextInput
                     style={[styles.input, styles.inputFlex]}
                     value={dosagePerUnit}
@@ -1101,6 +1105,7 @@ export default function TabTwoScreen() {
 
               {concentrationEnabled && (
                 <View style={styles.inputRow}>
+                  <ThemedText>Concentration</ThemedText>
                   <TextInput
                     style={[styles.input, styles.inputFlex]}
                     value={concentrationValue1}
@@ -1119,6 +1124,7 @@ export default function TabTwoScreen() {
                     <Picker.Item label="mcg" value="mcg" />
                   </Picker>
                   <ThemedText>per</ThemedText>
+                  <ThemedText>Volume</ThemedText>
                   <TextInput
                     style={[styles.input, styles.inputFlex]}
                     value={concentrationValue2}
@@ -1184,7 +1190,7 @@ export default function TabTwoScreen() {
                           placeholder="Duration"
                           placeholderTextColor="#666"
                         />
-                        <ThemedText style={styles.unitLabel}>days</ThemedText>
+                        <ThemedText style={styles.unitLabel}>days in duration</ThemedText>
                       </View>
 
                       {titrationStages.length > 1 && (
@@ -1225,6 +1231,7 @@ export default function TabTwoScreen() {
             </>
           ) : (
             <View style={styles.inputRow}>
+              <ThemedText>Day Supply</ThemedText>
               <TextInput
                 style={[styles.input, styles.inputFlex]}
                 value={daySupply}

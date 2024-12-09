@@ -47,7 +47,7 @@ const TOPICAL_AREAS: TopicalArea[] = [
 export default function TabTwoScreen() {
   const [weightUnit, setWeightUnit] = useState('kg');
   const [quantity, setQuantity] = useState('');
-  const [packageSize, setPackageSize] = useState('1');
+  const [usesPerFrequency, setUsesPerFrequency] = useState('1');
   const [frequencyNumber, setFrequencyNumber] = useState('1');
   const [frequencyPattern, setFrequencyPattern] = useState('every');
   const [frequencyUnit, setFrequencyUnit] = useState('day');
@@ -73,7 +73,7 @@ export default function TabTwoScreen() {
   const [dropsPerMl, setDropsPerMl] = useState('20');
   const [usePackageSize, setUsePackageSize] = useState(false);
   const [useBeyondUseDate, setUseBeyondUseDate] = useState(false);
-  const [packageSizeValue, setPackageSizeValue] = useState('');
+  const [packageSize, setPackageSize] = useState('');
   const [beyondUseDateValue, setBeyondUseDateValue] = useState('');
   const [selectedAreas, setSelectedAreas] = useState<Set<string>>(new Set());
   const [puffsPerPackage, setPuffsPerPackage] = useState('');
@@ -90,7 +90,7 @@ export default function TabTwoScreen() {
 
   const calculate = () => {
     const quantityNum = parseFloat(quantity);
-    const packageSizeNum = parseFloat(packageSize);
+    const usesPerFrequencyNum = parseFloat(usesPerFrequency);
     const frequencyNum = parseFloat(frequencyNumber);
     const dropsPerMlNum = parseFloat(dropsPerMl);
     
@@ -98,16 +98,16 @@ export default function TabTwoScreen() {
     
     // Adjust quantity based on package size if enabled
     let adjustedQuantity = quantityNum;
-    if (usePackageSize && packageSizeValue) {
-      const packageSizeMultiple = parseFloat(packageSizeValue);
-      if (!isNaN(packageSizeMultiple) && packageSizeMultiple > 0) {
-        adjustedQuantity = Math.floor(quantityNum / packageSizeMultiple) * packageSizeMultiple;
+    if (usePackageSize && packageSize) {
+      const usesPerFrequencyMultiple = parseFloat(packageSize);
+      if (!isNaN(usesPerFrequencyMultiple) && usesPerFrequencyMultiple > 0) {
+        adjustedQuantity = Math.floor(quantityNum / usesPerFrequencyMultiple) * usesPerFrequencyMultiple;
       }
     }
 
     if (calculationType === 'daySupply') {
       // Validate inputs
-      if (isNaN(adjustedQuantity) || isNaN(packageSizeNum) || isNaN(frequencyNum) || 
+      if (isNaN(adjustedQuantity) || isNaN(usesPerFrequencyNum) || isNaN(frequencyNum) || 
           (weightUnit === 'Eye Drops' && isNaN(dropsPerMlNum))) {
         setResult('Please enter valid numbers');
         return;
@@ -152,7 +152,7 @@ export default function TabTwoScreen() {
             if (isNaN(stageDose) || isNaN(stageDuration)) continue;
 
             // Convert prescribed dose to ml
-            const stageMlPerDose = (stageDose / concentrationRatio) * packageSizeNum;
+            const stageMlPerDose = (stageDose / concentrationRatio) * usesPerFrequencyNum;
             const stageDailyMl = stageMlPerDose * dosesPerDay;
             const mlForStage = stageDailyMl * stageDuration;
 
@@ -179,7 +179,7 @@ export default function TabTwoScreen() {
           // If there's still quantity left, use it at max dose
           if (remainingQuantity > 0) {
             const maxDoseNum = parseFloat(maxDose);
-            const maxMlPerDose = (maxDoseNum / concentrationRatio) * packageSizeNum;
+            const maxMlPerDose = (maxDoseNum / concentrationRatio) * usesPerFrequencyNum;
             const maxDailyMl = maxMlPerDose * dosesPerDay;
             const additionalDays = remainingQuantity / maxDailyMl;
             totalDays += additionalDays;
@@ -198,7 +198,7 @@ export default function TabTwoScreen() {
         } else {
           // Regular concentration calculation
           // Convert the total volume (quantityNum) to doses based on mlPerDose
-          const totalMlNeeded = mlPerDose * dosesPerDay * packageSizeNum;
+          const totalMlNeeded = mlPerDose * dosesPerDay * usesPerFrequencyNum;
           resultValue = quantityNum / totalMlNeeded;
         }
       } else if (includeTitration && maxDose) {
@@ -207,17 +207,17 @@ export default function TabTwoScreen() {
           titrationStages,
           maxDose: parseFloat(maxDose),
           dosesPerDay,
-          packageSize: packageSizeNum
+          usesPerFrequency: usesPerFrequencyNum
         });
 
-        const maxDoseNum = parseFloat(maxDose) * packageSizeNum;
+        const maxDoseNum = parseFloat(maxDose) * usesPerFrequencyNum;
         let remainingQuantity = adjustedQuantity;
         let totalDays = 0;
 
         // Process each titration stage
         for (let i = 0; i < titrationStages.length && remainingQuantity > 0; i++) {
           const currentStage = titrationStages[i];
-          const stageDose = parseFloat(currentStage.quantity) * packageSizeNum; // Account for uses per frequency
+          const stageDose = parseFloat(currentStage.quantity) * usesPerFrequencyNum; // Account for uses per frequency
           const stageDuration = parseFloat(currentStage.duration);
 
           if (isNaN(stageDose) || isNaN(stageDuration)) continue;
@@ -282,25 +282,39 @@ export default function TabTwoScreen() {
         // Calculate doses per day
         const dosesPerDay = (() => {
           if (frequencyPattern === 'everyOther') {
-            return 0.5 * parseFloat(packageSize);
+            return 0.5 * parseFloat(usesPerFrequency);
           }
           if (frequencyUnit === 'hour') {
-            return (24 / parseFloat(frequencyNumber)) * parseFloat(packageSize);
+            return (24 / parseFloat(frequencyNumber)) * parseFloat(usesPerFrequency);
           }
           if (frequencyUnit === 'day') {
-            return parseFloat(frequencyNumber) * parseFloat(packageSize);
+            return parseFloat(frequencyNumber) * parseFloat(usesPerFrequency);
           }
           if (frequencyUnit === 'week') {
-            return (parseFloat(frequencyNumber) / 7) * parseFloat(packageSize);
+            return (parseFloat(frequencyNumber) / 7) * parseFloat(usesPerFrequency);
           }
-          return getFrequencyPerDay(parseFloat(frequencyNumber), frequencyPattern, frequencyUnit) * parseFloat(packageSize);
+          return getFrequencyPerDay(parseFloat(frequencyNumber), frequencyPattern, frequencyUnit) * parseFloat(usesPerFrequency);
         })();
 
+        // calculate grams per puff
+        const gramsPerPuff = gramsNum / puffsNum;
+
         // Calculate total puffs available
-        const totalPuffs = puffsNum * (quantityNum / gramsNum);
+        const totalPuffs = adjustedQuantity / gramsPerPuff;
         
         // Calculate days supply
         resultValue = totalPuffs / dosesPerDay;
+
+        console.log('Oral Inhaler Day Supply Initial Values:', {
+          quantity: adjustedQuantity,
+          puffsNum,
+          totalPuffs,
+          gramsPerPuff,
+          gramsNum,
+          dosesPerDay,
+          resultValue,
+          usesPerFrequency: usesPerFrequencyNum
+        });
 
       } else if (weightUnit === 'Nasal Inhaler') {
         // Parse nasal inhaler-specific values
@@ -319,14 +333,14 @@ export default function TabTwoScreen() {
         const totalSprays = quantityNum * spraysPerMl;
         
         // Calculate daily spray usage
-        const dailySprayUsage = dosesPerDay * packageSizeNum;
+        const dailySprayUsage = dosesPerDay * usesPerFrequencyNum;
         resultValue = totalSprays / dailySprayUsage;
       } else if (weightUnit === 'Eye Drops') {
         console.log('Eye Drops Day Supply Initial Values:', {
           quantity: adjustedQuantity,         // Should be 8ml
           dropsPerMl: dropsPerMlNum,         // Should be 20 or 16
           dosesPerDay,                        // Should be 1
-          packageSize: packageSizeNum,        // Should be 2.5ml
+          usesPerFrequency: usesPerFrequencyNum,        // Should be 2.5ml
           beyondUseDate: beyondUseDateValue   // Should be 42
         });
 
@@ -338,8 +352,19 @@ export default function TabTwoScreen() {
           resultValue: Math.floor(resultValue), // Should be 126 or 120 after BUD adjustment
           expectedDays: '126 or 120'          // (rounded down to nearest multiple of 42)
         });
+      } else if (weightUnit === 'Topical') {
+        // Calculate total grams per application
+        const totalGramsPerApplication = TOPICAL_AREAS
+          .filter(area => selectedAreas.has(area.name))
+          .reduce((sum, area) => sum + area.grams, 0);
+        
+        // Calculate total grams needed
+        const totalGramsNeeded = totalGramsPerApplication * dosesPerDay * usesPerFrequencyNum;
+        
+        // Calculate days supply
+        resultValue = quantityNum / totalGramsNeeded;
       } else {
-        const dailyUsage = dosesPerDay * packageSizeNum;
+        const dailyUsage = dosesPerDay * usesPerFrequencyNum;
         resultValue = adjustedQuantity / dailyUsage;
       }
 
@@ -351,7 +376,7 @@ export default function TabTwoScreen() {
       if (useBeyondUseDate && beyondUseDateValue) {
         const beyondUsePeriod = parseFloat(beyondUseDateValue);
         if (!isNaN(beyondUsePeriod) && beyondUsePeriod > 0) {
-          const daysPerPackage = (parseFloat(packageSizeValue) * dropsPerMlNum) / dosesPerDay;
+          const daysPerPackage = (parseFloat(packageSize) * dropsPerMlNum) / dosesPerDay;
           if (daysPerPackage > beyondUsePeriod) {
             finalResult = Math.floor(originalResult / beyondUsePeriod) * beyondUsePeriod;
           }
@@ -365,10 +390,10 @@ export default function TabTwoScreen() {
       let resultString = `${roundedFinal} (${finalResult.toFixed(1)}) ${outputUnit}${finalResult === 1 ? '' : 's'}`;
       
       // Add package count if package size is enabled
-      if (usePackageSize && packageSizeValue) {
-        const packageSizeNum = parseFloat(packageSizeValue);
-        if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
-          const packagesUsed = Math.ceil(adjustedQuantity / packageSizeNum);
+      if (usePackageSize && packageSize) {
+        const usesPerFrequencyNum = parseFloat(packageSize);
+        if (!isNaN(usesPerFrequencyNum) && usesPerFrequencyNum > 0) {
+          const packagesUsed = Math.ceil(adjustedQuantity / usesPerFrequencyNum);
           resultString += `\nPackages used: ${packagesUsed}`;
         }
       }
@@ -381,9 +406,9 @@ export default function TabTwoScreen() {
     } else {  // calculationType === 'quantity'
       const daysNum = parseFloat(daySupply);
       const frequencyNum = parseFloat(frequencyNumber);
-      const packageSizeNum = parseFloat(packageSize);
+      const usesPerFrequencyNum = parseFloat(usesPerFrequency);
       
-      if (isNaN(daysNum) || isNaN(frequencyNum) || isNaN(packageSizeNum)) {
+      if (isNaN(daysNum) || isNaN(frequencyNum) || isNaN(usesPerFrequencyNum)) {
         setResult('Please enter valid numbers');
         return;
       }
@@ -428,7 +453,7 @@ export default function TabTwoScreen() {
           // Process each titration stage
           for (let i = 0; i < titrationStages.length && remainingDays > 0; i++) {
             const currentStage = titrationStages[i];
-            const stageDose = parseFloat(currentStage.quantity) * packageSizeNum;
+            const stageDose = parseFloat(currentStage.quantity) * usesPerFrequencyNum;
             const stageDuration = parseFloat(currentStage.duration);
 
             if (isNaN(stageDose) || isNaN(stageDuration)) continue;
@@ -446,18 +471,18 @@ export default function TabTwoScreen() {
 
           // If there are remaining days, calculate at max dose
           if (remainingDays > 0) {
-            const maxDoseNum = parseFloat(maxDose) * packageSizeNum;
+            const maxDoseNum = parseFloat(maxDose) * usesPerFrequencyNum;
             const maxDailyDose = maxDoseNum * dosesPerDay;
             const finalQuantity = maxDailyDose * remainingDays;
             totalQuantity += finalQuantity;
           }
 
           let resultString = `${totalQuantity.toFixed(2)} ${measurementUnit} needed`;
-          if (usePackageSize && packageSizeValue) {
-            const packageSizeNum = parseFloat(packageSizeValue);
-            if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
-              const roundedQuantity = Math.ceil(totalQuantity / packageSizeNum) * packageSizeNum;
-              const packagesUsed = roundedQuantity / packageSizeNum;
+          if (usePackageSize && packageSize) {
+            const usesPerFrequencyNum = parseFloat(packageSize);
+            if (!isNaN(usesPerFrequencyNum) && usesPerFrequencyNum > 0) {
+              const roundedQuantity = Math.ceil(totalQuantity / usesPerFrequencyNum) * usesPerFrequencyNum;
+              const packagesUsed = roundedQuantity / usesPerFrequencyNum;
               resultString = `${roundedQuantity} ${measurementUnit} (adjusted to package size) | ${totalQuantity.toFixed(2)} ${measurementUnit} (unadjusted)\nPackages used: ${packagesUsed}`;
             }
           }
@@ -470,11 +495,11 @@ export default function TabTwoScreen() {
           const totalQuantity = dailyMl * actualDays;
 
           let resultString = `${totalQuantity.toFixed(2)} ${measurementUnit} needed`;
-          if (usePackageSize && packageSizeValue) {
-            const packageSizeNum = parseFloat(packageSizeValue);
-            if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
-              const roundedQuantity = Math.floor(totalQuantity / packageSizeNum) * packageSizeNum;
-              const packagesUsed = roundedQuantity / packageSizeNum;
+          if (usePackageSize && packageSize) {
+            const usesPerFrequencyNum = parseFloat(packageSize);
+            if (!isNaN(usesPerFrequencyNum) && usesPerFrequencyNum > 0) {
+              const roundedQuantity = Math.floor(totalQuantity / usesPerFrequencyNum) * usesPerFrequencyNum;
+              const packagesUsed = roundedQuantity / usesPerFrequencyNum;
               resultString = `${roundedQuantity} ${measurementUnit} (adjusted to package size) | ${totalQuantity.toFixed(2)} ${measurementUnit} (unadjusted)\nPackages used: ${packagesUsed}`;
             }
           }
@@ -535,7 +560,7 @@ export default function TabTwoScreen() {
       } else if (weightUnit === 'Eye Drops') {
         // Parse eye drops-specific values
         const dropsPerMlNum = parseFloat(dropsPerMl);
-        const packageSizeNum = parseFloat(packageSizeValue || '2.5');
+        const usesPerFrequencyNum = parseFloat(packageSize || '2.5');
 
         // Calculate doses per day
         const dosesPerDay = (() => {
@@ -562,7 +587,7 @@ export default function TabTwoScreen() {
           targetDays: actualDays,
           dropsPerMl: dropsPerMlNum,
           dosesPerDay,
-          packageSize: packageSizeNum
+          usesPerFrequency: usesPerFrequencyNum
         });
 
         // Calculate total drops needed
@@ -574,15 +599,15 @@ export default function TabTwoScreen() {
         let finalQuantity = mlNeeded;
         let resultString = `${mlNeeded.toFixed(2)} mL needed`;
         // Round down to nearest package size, unless it would be zero
-        if (usePackageSize && packageSizeValue) {
-          const packageSizeNum = parseFloat(packageSizeValue);
-          if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
-            finalQuantity = Math.floor(mlNeeded / packageSizeNum) * packageSizeNum;
+        if (usePackageSize && packageSize) {
+          const usesPerFrequencyNum = parseFloat(packageSize);
+          if (!isNaN(usesPerFrequencyNum) && usesPerFrequencyNum > 0) {
+            finalQuantity = Math.floor(mlNeeded / usesPerFrequencyNum) * usesPerFrequencyNum;
             // If rounding down would result in zero, round up instead
             if (finalQuantity === 0 && mlNeeded > 0) {
-              finalQuantity = packageSizeNum;
+              finalQuantity = usesPerFrequencyNum;
             }
-            const packagesUsed = finalQuantity / packageSizeNum;
+            const packagesUsed = finalQuantity / usesPerFrequencyNum;
             resultString = `${finalQuantity} mL needed (adjusted to package size) | ${mlNeeded.toFixed(2)} mL (unadjusted)\nPackages used: ${packagesUsed}`;
           }
         }
@@ -601,18 +626,18 @@ export default function TabTwoScreen() {
         // Calculate doses per day
         const dosesPerDay = (() => {
           if (frequencyPattern === 'everyOther') {
-            return 0.5 * parseFloat(packageSize);
+            return 0.5 * parseFloat(usesPerFrequency);
           }
           if (frequencyUnit === 'hour') {
-            return (24 / parseFloat(frequencyNumber)) * parseFloat(packageSize);
+            return (24 / parseFloat(frequencyNumber)) * parseFloat(usesPerFrequency);
           }
           if (frequencyUnit === 'day') {
-            return parseFloat(frequencyNumber) * parseFloat(packageSize);
+            return parseFloat(frequencyNumber) * parseFloat(usesPerFrequency);
           }
           if (frequencyUnit === 'week') {
-            return (parseFloat(frequencyNumber) / 7) * parseFloat(packageSize);
+            return (parseFloat(frequencyNumber) / 7) * parseFloat(usesPerFrequency);
           }
-          return getFrequencyPerDay(parseFloat(frequencyNumber), frequencyPattern, frequencyUnit) * parseFloat(packageSize);
+          return getFrequencyPerDay(parseFloat(frequencyNumber), frequencyPattern, frequencyUnit) * parseFloat(usesPerFrequency);
         })();
 
         // Convert target days to actual days based on time unit
@@ -630,15 +655,15 @@ export default function TabTwoScreen() {
         let finalGrams = gramsNeeded;
         let resultString = `${gramsNeeded.toFixed(2)} grams needed`;
         // Round down to nearest package size, unless it would be zero
-        if (usePackageSize && packageSizeValue) {
-          const packageSizeNum = parseFloat(packageSizeValue);
-          if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
-            finalGrams = Math.floor(gramsNeeded / packageSizeNum) * packageSizeNum;
+        if (usePackageSize && packageSize) {
+          const usesPerFrequencyNum = parseFloat(packageSize);
+          if (!isNaN(usesPerFrequencyNum) && usesPerFrequencyNum > 0) {
+            finalGrams = Math.floor(gramsNeeded / usesPerFrequencyNum) * usesPerFrequencyNum;
             // If rounding down would result in zero, round up instead
             if (finalGrams === 0 && gramsNeeded > 0) {
-              finalGrams = packageSizeNum;
+              finalGrams = usesPerFrequencyNum;
             }
-            const packagesUsed = finalGrams / packageSizeNum;
+            const packagesUsed = finalGrams / usesPerFrequencyNum;
             resultString = `${finalGrams} grams (adjusted to package size) | ${gramsNeeded.toFixed(2)} grams (unadjusted)\nPackages used: ${packagesUsed}`;
           }
         }
@@ -657,18 +682,18 @@ export default function TabTwoScreen() {
         // Calculate doses per day
         const dosesPerDay = (() => {
           if (frequencyPattern === 'everyOther') {
-            return 0.5 * parseFloat(packageSize);
+            return 0.5 * parseFloat(usesPerFrequency);
           }
           if (frequencyUnit === 'hour') {
-            return (24 / parseFloat(frequencyNumber)) * parseFloat(packageSize);
+            return (24 / parseFloat(frequencyNumber)) * parseFloat(usesPerFrequency);
           }
           if (frequencyUnit === 'day') {
-            return parseFloat(frequencyNumber) * parseFloat(packageSize);
+            return parseFloat(frequencyNumber) * parseFloat(usesPerFrequency);
           }
           if (frequencyUnit === 'week') {
-            return (parseFloat(frequencyNumber) / 7) * parseFloat(packageSize);
+            return (parseFloat(frequencyNumber) / 7) * parseFloat(usesPerFrequency);
           }
-          return getFrequencyPerDay(parseFloat(frequencyNumber), frequencyPattern, frequencyUnit) * parseFloat(packageSize);
+          return getFrequencyPerDay(parseFloat(frequencyNumber), frequencyPattern, frequencyUnit) * parseFloat(usesPerFrequency);
         })();
 
         // Convert target days to actual days based on time unit
@@ -686,15 +711,15 @@ export default function TabTwoScreen() {
         let finalMls = mlNeeded;
         let resultString = `${mlNeeded.toFixed(2)} ml needed`;
         // Round down to nearest package size, unless it would be zero
-        if (usePackageSize && packageSizeValue) {
-          const packageSizeNum = parseFloat(packageSizeValue);
-          if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
-            finalMls = Math.floor(mlNeeded / packageSizeNum) * packageSizeNum;
+        if (usePackageSize && packageSize) {
+          const usesPerFrequencyNum = parseFloat(packageSize);
+          if (!isNaN(usesPerFrequencyNum) && usesPerFrequencyNum > 0) {
+            finalMls = Math.floor(mlNeeded / usesPerFrequencyNum) * usesPerFrequencyNum;
             // If rounding down would result in zero, round up instead
             if (finalMls === 0 && mlNeeded > 0) {
-              finalMls = packageSizeNum;
+              finalMls = usesPerFrequencyNum;
             }
-            const packagesUsed = finalMls / packageSizeNum;
+            const packagesUsed = finalMls / usesPerFrequencyNum;
             resultString = `${finalMls} ml (adjusted to package size) | ${mlNeeded.toFixed(2)} ml (unadjusted)\nPackages used: ${packagesUsed}`;
           }
         }
@@ -706,36 +731,28 @@ export default function TabTwoScreen() {
         const dosesPerDay = (() => {
           console.log('Frequency Values:', {
             frequencyNum,
-            packageSizeNum,
+            usesPerFrequencyNum,
             frequencyPattern,
             frequencyUnit,
             expectedDosesPerDay: 2
           });
 
           if (frequencyPattern === 'everyOther') {
-            return 0.5 * packageSizeNum;
+            return 0.5 * usesPerFrequencyNum;
           }
           if (frequencyUnit === 'hour') {
-            return (24 / frequencyNum) * packageSizeNum;
+            return (24 / frequencyNum) * usesPerFrequencyNum;
           }
           if (frequencyUnit === 'day') {
-            return frequencyNum * packageSizeNum;  // This will now be 2 * packageSize
+            return frequencyNum * usesPerFrequencyNum;
           }
           if (frequencyUnit === 'week') {
-            return (frequencyNum / 7) * packageSizeNum;
+            return (frequencyNum / 7) * usesPerFrequencyNum;
           }
-          return getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit) * packageSizeNum;
+          return getFrequencyPerDay(frequencyNum, frequencyPattern, frequencyUnit) * usesPerFrequencyNum;
         })();
 
-        console.log('Detailed Topical Values:', {
-          frequencyNum,
-          frequencyPattern,
-          frequencyUnit,
-          dosesPerDay,
-          selectedAreas: Array.from(selectedAreas),
-          packageSizeNum,
-          daysNum
-        });
+        
 
         // Calculate total grams per application
         const totalGramsPerApplication = TOPICAL_AREAS
@@ -744,19 +761,32 @@ export default function TabTwoScreen() {
 
         // Calculate total grams needed
         const totalGramsNeeded = totalGramsPerApplication * dosesPerDay * daysNum;
+
+        console.log('Detailed Topical Values:', {
+          frequencyNum,
+          frequencyPattern,
+          frequencyUnit,
+          dosesPerDay,
+          totalGramsNeeded,
+          totalGramsPerApplication,
+          selectedAreas: Array.from(selectedAreas),
+          packageSize,
+          usesPerFrequencyNum,
+          daysNum
+        });
         
         let finalQuantity = totalGramsNeeded;
         let resultString = `${totalGramsNeeded.toFixed(2)} grams needed`;
         // Round down to nearest package size, unless it would be zero
-        if (usePackageSize && packageSizeValue) {
-          const packageSizeNum = parseFloat(packageSizeValue);
-          if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
-            finalQuantity = Math.floor(totalGramsNeeded / packageSizeNum) * packageSizeNum;
+        if (usePackageSize && packageSize) {
+          const usesPerFrequencyNum = parseFloat(packageSize);
+          if (!isNaN(usesPerFrequencyNum) && usesPerFrequencyNum > 0) {
+            finalQuantity = Math.floor(totalGramsNeeded / usesPerFrequencyNum) * usesPerFrequencyNum;
             // If rounding down would result in zero, round up instead
             if (finalQuantity === 0 && totalGramsNeeded > 0) {
-              finalQuantity = packageSizeNum;
+              finalQuantity = usesPerFrequencyNum;
             }
-            const packagesUsed = finalQuantity / packageSizeNum;
+            const packagesUsed = finalQuantity / usesPerFrequencyNum;
             resultString = `${finalQuantity} grams (adjusted to package size) | ${totalGramsNeeded.toFixed(2)} grams (unadjusted)\nPackages used: ${packagesUsed}`;
           }
         }
@@ -764,15 +794,15 @@ export default function TabTwoScreen() {
 
       } else {
         // Regular quantity calculation without titration or concentration
-        const dailyUsage = dosesPerDay * packageSizeNum;
+        const dailyUsage = dosesPerDay * usesPerFrequencyNum;
         const totalQuantity = dailyUsage * actualDays;
         
         let resultString = `${totalQuantity.toFixed(2)} units needed`;
-        if (usePackageSize && packageSizeValue) {
-          const packageSizeNum = parseFloat(packageSizeValue);
-          if (!isNaN(packageSizeNum) && packageSizeNum > 0) {
-            const roundedQuantity = Math.ceil(totalQuantity / packageSizeNum) * packageSizeNum;
-            const packagesUsed = roundedQuantity / packageSizeNum;
+        if (usePackageSize && packageSize) {
+          const usesPerFrequencyNum = parseFloat(packageSize);
+          if (!isNaN(usesPerFrequencyNum) && usesPerFrequencyNum > 0) {
+            const roundedQuantity = Math.ceil(totalQuantity / usesPerFrequencyNum) * usesPerFrequencyNum;
+            const packagesUsed = roundedQuantity / usesPerFrequencyNum;
             resultString = `${roundedQuantity} units (adjusted to package size) | ${totalQuantity.toFixed(2)} units (unadjusted)\nPackages used: ${packagesUsed}`;
           }
         }
@@ -854,19 +884,25 @@ export default function TabTwoScreen() {
           <View style={styles.toggleContainer}>
             <TouchableOpacity 
               style={[
-                styles.toggleButton, 
-                calculationType === 'daySupply' && styles.toggleButtonActive
+                styles.calculatorTypeButton, 
+                calculationType === 'daySupply' && styles.calculatorTypeButtonActive
               ]}
               onPress={() => setCalculationType('daySupply')}>
-              <ThemedText>Calculate Days</ThemedText>
+              <ThemedText style={[
+                styles.calculatorTypeText,
+                calculationType === 'daySupply' && styles.calculatorTypeTextActive
+              ]}>Calculate Days</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity 
               style={[
-                styles.toggleButton, 
-                calculationType === 'quantity' && styles.toggleButtonActive
+                styles.calculatorTypeButton, 
+                calculationType === 'quantity' && styles.calculatorTypeButtonActive
               ]}
               onPress={() => setCalculationType('quantity')}>
-              <ThemedText>Calculate Quantity</ThemedText>
+              <ThemedText style={[
+                styles.calculatorTypeText,
+                calculationType === 'quantity' && styles.calculatorTypeTextActive
+              ]}>Calculate Quantity</ThemedText>
             </TouchableOpacity>
           </View>
 
@@ -887,8 +923,8 @@ export default function TabTwoScreen() {
             <View style={styles.inputRow}>
               <TextInput
                 style={[styles.input, styles.inputFlex]}
-                value={packageSizeValue}
-                onChangeText={setPackageSizeValue}
+                value={packageSize}
+                onChangeText={setPackageSize}
                 keyboardType="numeric"
                 placeholder="Package size"
                 placeholderTextColor="#666"
@@ -931,6 +967,8 @@ export default function TabTwoScreen() {
                   }}
                   style={styles.unitPicker}>
                   <Picker.Item label="units" value="units" />
+                  <Picker.Item label="tablet" value="tablet" />
+                  <Picker.Item label="capsule" value="capsule" />
                   <Picker.Item label="mg" value="mg" />
                   <Picker.Item label="ml" value="ml" />
                   <Picker.Item label="g" value="g" />
@@ -953,6 +991,7 @@ export default function TabTwoScreen() {
                     selectedValue={dosageUnit}
                     onValueChange={setDosageUnit}
                     style={styles.unitPicker}>
+                    <Picker.Item label="units" value="units" />
                     <Picker.Item label="mg" value="mg" />
                     <Picker.Item label="ml" value="ml" />
                     <Picker.Item label="g" value="g" />
@@ -1110,17 +1149,7 @@ export default function TabTwoScreen() {
 
               {includeTitration && (
                 <View style={styles.titrationInputs}>
-                  <View style={styles.inputRow}>
-                    <TextInput
-                      style={[styles.input, styles.inputFlex]}
-                      value={maxDose}
-                      onChangeText={setMaxDose}
-                      keyboardType="numeric"
-                      placeholder="Maximum dose"
-                      placeholderTextColor="#666"
-                    />
-                    <ThemedText style={styles.unitLabel}>units per frequency</ThemedText>
-                  </View>
+                  
 
                   {titrationStages.map((stage, index) => (
                     <View key={index} style={styles.titrationStage}>
@@ -1139,7 +1168,7 @@ export default function TabTwoScreen() {
                           placeholder="Quantity per frequency"
                           placeholderTextColor="#666"
                         />
-                        <ThemedText style={styles.unitLabel}>units per frequency</ThemedText>
+                        <ThemedText style={styles.unitLabel}>{measurementUnit} per dose</ThemedText>
                       </View>
 
                       <View style={styles.inputRow}>
@@ -1170,7 +1199,17 @@ export default function TabTwoScreen() {
                       )}
                     </View>
                   ))}
-                  
+                  <View style={styles.inputRow}>
+                    <TextInput
+                      style={[styles.input, styles.inputFlex]}
+                      value={maxDose}
+                      onChangeText={setMaxDose}
+                      keyboardType="numeric"
+                      placeholder="Maximum dose"
+                      placeholderTextColor="#666"
+                    />
+                    <ThemedText style={styles.unitLabel}>max {measurementUnit} per dose</ThemedText>
+                  </View>
                   <TouchableOpacity 
                     style={styles.addStageButton}
                     onPress={() => {
@@ -1211,8 +1250,8 @@ export default function TabTwoScreen() {
               <View style={styles.usesPerFrequencyContainer}>
                 <TextInput
                   style={[styles.input, styles.frequencyInput]}
-                  value={packageSize}
-                  onChangeText={setPackageSize}
+                  value={usesPerFrequency}
+                  onChangeText={setUsesPerFrequency}
                   keyboardType="numeric"
                   placeholder="Uses"
                   placeholderTextColor="#666"
@@ -1613,5 +1652,45 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
+  },
+  calculatorTypeButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#91e655',
+    backgroundColor: '#fff',
+    alignSelf: 'center',
+    minWidth: 150,
+    alignItems: 'center',
+    marginVertical: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  calculatorTypeButtonActive: {
+    backgroundColor: '#91e655',
+    borderColor: '#7bc548',
+    shadowColor: '#91e655',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  calculatorTypeText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#91e655',
+  },
+  calculatorTypeTextActive: {
+    color: '#fff',
   },
 });

@@ -15,6 +15,7 @@ export default function TabTwoScreen() {
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">About</ThemedText>
       </ThemedView>
+      
       <ThemedText>Below is information on this application, as well as additional resources.</ThemedText>
       <Collapsible title="PDF Resources">
         <ThemedText>Access helpful pharmacy reference materials:</ThemedText>
@@ -42,6 +43,15 @@ export default function TabTwoScreen() {
         <ExternalLink href="https://drive.google.com/file/d/1FjeayFv37AeRQlM613FgBF3ntVduDhhA/view?usp=drive_link">
           <ThemedText type="link">PAAS Insulin Chart</ThemedText>
         </ExternalLink>
+      </Collapsible>
+
+      <Collapsible title="Functionality">
+        <ThemedText>Need help with the app? Here are some resources to get you started:</ThemedText>
+        <Collapsible title="Calculate Days Supply"></Collapsible>
+        <Collapsible title="Calculate Quantity"></Collapsible>
+        <Collapsible title="Package Size and Beyond Use Date"></Collapsible>
+        <Collapsible title="Include Concentration"></Collapsible>
+        <Collapsible title="Include Titration"></Collapsible>
       </Collapsible>
       
     </ParallaxScrollView>

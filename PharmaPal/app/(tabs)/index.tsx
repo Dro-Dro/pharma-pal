@@ -19,6 +19,12 @@ export default function HomeScreen() {
         PharmaPal is a web application designed to assist pharmacists in calculating medication day supply and quantity. It provides a user-friendly interface for pharmacists to input medication details and receive accurate calculations.
       </ThemedText>
       <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">DISCLAIMER !!!</ThemedText>
+        <ThemedText>
+          This app is not intended to be used as the only calculator for pharmacy calculations. It is provided to supplement your existing knowledge and skills. No patient information is stored or processed. PAAS charts were used as a reference, but the app is not endorsed by PAAS.
+        </ThemedText>
+      </ThemedView>
+      <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Our Calculator Page!</ThemedText>
         <ThemedText>
           On the bar at the bottom of the screen, press the <ThemedText type="defaultSemiBold">Calculator</ThemedText> tab to access that function.
